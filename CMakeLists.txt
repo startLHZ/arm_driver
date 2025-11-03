@@ -18,14 +18,6 @@ set(ARCH "arm" CACHE STRING "Target architecture")
 set(CROSS_COMPILE "arm-linux-gnueabihf-" CACHE STRING "Cross compiler prefix")
 set(KERNEL_DIR "" CACHE PATH "Kernel build directory")
 
-# 验证内核路径
-if(NOT KERNEL_DIR OR NOT EXISTS "${KERNEL_DIR}/Makefile")
-    message(FATAL_ERROR 
-        "无效的内核路径: ${KERNEL_DIR}\n"
-        "请使用 build.sh 脚本进行编译，它会自动处理路径配置"
-    )
-endif()
-
 message(STATUS "=====================================")
 message(STATUS "ARM驱动编译配置")
 message(STATUS "=====================================")
@@ -37,24 +29,38 @@ message(STATUS "=====================================")
 add_subdirectory(src)
 add_subdirectory(examples)
 
-# 内核模块编译命令 - 在src子目录中执行
-set(KBUILD_CMD ${CMAKE_MAKE_PROGRAM} -C ${KERNEL_DIR} M=${CMAKE_CURRENT_BINARY_DIR}/src ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE})
+# 内核模块编译 - 为每个驱动单独编译
+set(DRIVER_DIRS simple_driver block_driver)
 
-add_custom_target(modules
-    COMMAND ${KBUILD_CMD} modules
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/src
-    COMMENT "Building kernel modules"
-    DEPENDS src
+add_custom_target(modules ALL
+    COMMENT "Building all kernel modules"
 )
 
-add_custom_target(modules_install
-    COMMAND ${KBUILD_CMD} modules_install
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/src
-    COMMENT "Installing kernel modules"
-)
+foreach(DRIVER_DIR ${DRIVER_DIRS})
+    set(DRIVER_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR}/src/${DRIVER_DIR})
+    set(KBUILD_CMD ${CMAKE_MAKE_PROGRAM} -C ${KERNEL_DIR} M=${DRIVER_BUILD_DIR} ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE})
+    
+    add_custom_target(modules_${DRIVER_DIR}
+        COMMAND ${KBUILD_CMD} modules
+        WORKING_DIRECTORY ${DRIVER_BUILD_DIR}
+        COMMENT "Building ${DRIVER_DIR} kernel module"
+    )
+    
+    add_dependencies(modules modules_${DRIVER_DIR})
+endforeach()
 
 add_custom_target(clean_modules
-    COMMAND ${KBUILD_CMD} clean
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/src
-    COMMENT "Cleaning kernel modules"
+    COMMENT "Cleaning all kernel modules"
 )
+
+foreach(DRIVER_DIR ${DRIVER_DIRS})
+    set(DRIVER_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR}/src/${DRIVER_DIR})
+    set(KBUILD_CMD ${CMAKE_MAKE_PROGRAM} -C ${KERNEL_DIR} M=${DRIVER_BUILD_DIR} ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE})
+    
+    add_custom_target(clean_modules_${DRIVER_DIR}
+        COMMAND ${KBUILD_CMD} clean
+        WORKING_DIRECTORY ${DRIVER_BUILD_DIR}
+    )
+    
+    add_dependencies(clean_modules clean_modules_${DRIVER_DIR})
+endforeach()
