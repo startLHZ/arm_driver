@@ -1,0 +1,1413 @@
+# 0 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6e-soc-kdump.dts"
+# 0 "<built-in>"
+# 0 "<command-line>"
+# 1 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6e-soc-kdump.dts"
+
+
+
+
+
+
+
+/dts-v1/;
+
+# 1 "/home/huaizhenlv/630_v27/kernel/scripts/dtc/include-prefixes/dt-bindings/interrupt-controller/arm-gic.h" 1
+# 9 "/home/huaizhenlv/630_v27/kernel/scripts/dtc/include-prefixes/dt-bindings/interrupt-controller/arm-gic.h"
+# 1 "/home/huaizhenlv/630_v27/kernel/scripts/dtc/include-prefixes/dt-bindings/interrupt-controller/irq.h" 1
+# 10 "/home/huaizhenlv/630_v27/kernel/scripts/dtc/include-prefixes/dt-bindings/interrupt-controller/arm-gic.h" 2
+# 11 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6e-soc-kdump.dts" 2
+
+# 1 "/home/huaizhenlv/630_v27/kernel/scripts/dtc/include-prefixes/dt-bindings/gpio/gpio.h" 1
+# 13 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6e-soc-kdump.dts" 2
+# 1 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/include/uio_diag_id.h" 1
+# 14 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6e-soc-kdump.dts" 2
+# 1 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/include/hobot_j6e_clk.h" 1
+# 15 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6e-soc-kdump.dts" 2
+# 1 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/include/hobot_j6e_mcu_clk.h" 1
+# 16 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6e-soc-kdump.dts" 2
+# 1 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/include/hobot_j6e_pd.h" 1
+# 17 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6e-soc-kdump.dts" 2
+# 1 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/include/hobot_j6e_perf.h" 1
+# 18 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6e-soc-kdump.dts" 2
+# 1 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/include/hobot_j6e_rst.h" 1
+# 19 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6e-soc-kdump.dts" 2
+# 1 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/include/hobot_j6e_mcu_rst.h" 1
+# 20 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6e-soc-kdump.dts" 2
+# 1 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/include/hobot_j6e_sensor.h" 1
+# 21 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6e-soc-kdump.dts" 2
+# 1 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/include/hobot_j6e_volt.h" 1
+# 22 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6e-soc-kdump.dts" 2
+# 1 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6e-irq-r0p9e2.dtsi" 1
+# 23 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6e-soc-kdump.dts" 2
+# 1 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/include/hobot_j6e_ipc.h" 1
+# 24 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6e-soc-kdump.dts" 2
+
+
+
+
+
+/ {
+ interrupt-parent = <&gic>;
+ #address-cells = <2>;
+ #size-cells = <2>;
+
+ aliases {
+  serial0 = &uart0;
+ };
+
+ chosen {
+        stdout-path = "serial0:115200n8";
+ };
+
+ memory@80000000 {
+  reg = <0x0 0x80000000 0x0 0x80000000>;
+  device_type = "memory";
+    };
+
+ reserved_memory: reserved-memory {
+  #address-cells = <2>;
+  #size-cells = <2>;
+  ranges;
+
+  configure_region@A0000000 {
+   reg = <0x0 0xA0000000 0x0 0x00100000>;
+   no-map;
+  };
+
+  atf_region@A0100000 {
+   reg = <0x0 0xA0100000 0x0 0x00100000>;
+   no-map;
+  };
+
+  smc_scmi_region@A0200000 {
+   reg = <0x0 0xA0200000 0x0 0x00f00000>;
+   no-map;
+  };
+
+  spl@A1100000 {
+   reg = <0x0 0xA1100000 0x0 0x00F00000>;
+   no-map;
+  };
+
+  optee_region@A2000000 {
+   reg = <0x0 0xA2000000 0x0 0x08000000>;
+   no-map;
+  };
+
+  ddr_stl_region@AA000000 {
+   reg = <0x0 0xAA000000 0x0 0x00100000>;
+   no-map;
+   status = "okay";
+  };
+
+  acore_cfg@AB000000 {
+   reg = <0x0 0xAB000000 0x0 0x00100000>;
+   no-map;
+  };
+
+  uboot@AB200000 {
+   reg = <0x0 0xAB200000 0x0 0x00200000>;
+   no-map;
+  };
+
+  pcie0_func0_bar4_reserved: pcie0_func0_bar4_reserved@c0000000 {
+   status = "okay";
+   no-map;
+   reg = <0x0 0xc0000000 0x0 0x2000000>;
+  };
+
+  pcie0_func0_bar2_reserved: pcie0_func0_bar2_reserved@c2000000 {
+   status = "okay";
+   no-map;
+   reg = <0x0 0xc2000000 0x0 0x200000>;
+  };
+  pcie0_func1_bar2_reserved: pcie0_func1_bar2_reserved@c2200000 {
+   status = "disabled";
+   no-map;
+   reg = <0x0 0xc2200000 0x0 0x200000>;
+  };
+  pcie0_func2_bar2_reserved: pcie0_func2_bar2_reserved@c2400000 {
+   status = "disabled";
+   no-map;
+   reg = <0x0 0xc2400000 0x0 0x200000>;
+  };
+  pcie1_func0_bar4_reserved: pcie1_func0_bar4_reserved@c4000000 {
+   status = "disabled";
+   no-map;
+   reg = <0x0 0xc4000000 0x0 0x2000000>;
+  };
+  pcie1_func0_bar2_reserved: pcie1_func0_bar2_reserved@c6000000 {
+   status = "disabled";
+   no-map;
+   reg = <0x0 0xc6000000 0x0 0x200000>;
+  };
+  pcie1_func1_bar2_reserved: pcie1_func1_bar2_reserved@c6200000 {
+   status = "disabled";
+   no-map;
+   reg = <0x0 0xc6200000 0x0 0x200000>;
+  };
+  pcie1_func2_bar2_reserved: pcie1_func2_bar2_reserved@c6400000 {
+   status = "disabled";
+   no-map;
+   reg = <0x0 0xc6400000 0x0 0x200000>;
+  };
+
+  hsm_log@C6800000 {
+   reg = <0x0 0xC6800000 0x0 0x00100000>;
+   no-map;
+   status = "okay";
+  };
+
+  vspiflash_reserved@CF000000 {
+   reg = <0x0 0xCF000000 0x0 0x00500000>;
+   no-map;
+   status = "okay";
+  };
+
+
+  ramoops@80000000 {
+   compatible = "ramoops";
+   reg = <0x0 0x80000000 0x0 0x400000>;
+   record-size = <0x10000>;
+   console-size = <0x200000>;
+   ftrace-size = <0x10000>;
+   pmsg-size = <0x10000>;
+   sched-size = <0x100000>;
+   ecc-size = <0x0>;
+   no-map;
+  };
+
+  bpu_region@9A000000 {
+   reg = <0x0 0x9A000000 0x0 0x06000000>;
+   no-map;
+   status = "okay";
+  };
+
+  ion_reserved: ion_reserved@C80000000 {
+   compatible = "ion-pool";
+   reg = <0x4 0x00000000 0x0 0x68000000>;
+   status = "okay";
+  };
+
+  ion_carveout: ion_carveout@800000000 {
+   compatible = "ion-carveout";
+   reg = <0x8 0x00000000 0x0 0x68000000>;
+   status = "okay";
+  };
+
+  ion_cma: ion_cma@400000000 {
+   compatible = "ion-cma";
+   reg = <0xC 0x80000000 0x0 0x50000000>;
+   status = "okay";
+  };
+
+  dsp0_ddr_reserved: dsp0_ddr_reserved@B0000000 {
+   compatible = "vdsp0-ddr";
+   no-map;
+   reg = <0x0 0xB0000000 0x0 0x04000000>;
+   status = "okay";
+  };
+
+  vpu_ddr_reserved: vpu_ddr_reserved@C0000000 {
+   compatible = "vpu-ddr";
+   no-map;
+   reg = <0x0 0xD0000000 0x0 0x04000000>;
+   status = "okay";
+  };
+
+  ipc_mcu_ddr_reserved: ipc_mcu_ddr_reserved@B4000000 {
+   compatible = "ipc_mcu_ddr";
+   reg = <0x0 ((0xb4000000)) 0x0 (0x01300000)>;
+   no-map;
+   status = "disable";
+  };
+
+  ipc_oth_ddr_reserved: ipc_oth_ddr_reserved@B5300000 {
+   compatible = "ipc_oth_ddr";
+   reg = <0x0 (((0xb4000000)) + (0x01300000)) 0x0 (0x00D00000)>;
+   no-map;
+   status = "disable";
+  };
+ };
+
+ soc: soc {
+  compatible = "simple-bus";
+  #address-cells = <2>;
+  #size-cells = <2>;
+  ranges;
+
+  timer: timer {
+   compatible = "arm,armv8-timer";
+   interrupt-parent = <&gic>;
+   interrupts = <1 13 ((((1 << (4)) - 1) << 8) | 8)>,
+      <1 14 ((((1 << (4)) - 1) << 8) | 8)>,
+      <1 11 ((((1 << (4)) - 1) << 8) | 8)>,
+      <1 10 ((((1 << (4)) - 1) << 8) | 8)>;
+   clock-frequency = <40000000>;
+   always-on;
+  };
+
+  gic: interrupt-controller {
+   #interrupt-cells = <3>;
+   #address-cells = <2>;
+   #size-cells = <2>;
+   ranges;
+   compatible = "arm,gic-v3";
+   interrupt-controller;
+   reg = <0x0 0x29C00000 0x0 0x10000>,
+      <0x0 0x29C80000 0x0 0x200000>;
+   interrupts = <1 9 4>;
+   its0: msi-controller@0 {
+    compatible = "arm,gic-v3-its";
+    msi-controller;
+    #msi-cells = <1>;
+    status = "okay";
+    reg = <0x0 0x29c40000 0x0 0x20000>;
+   };
+   its1: msi-controller@1 {
+    compatible = "arm,gic-v3-its";
+    msi-controller;
+    #msi-cells = <1>;
+    status = "disabled";
+    reg = <0x0 0x29c60000 0x0 0x20000>;
+   };
+  };
+
+  uart0: uart0 {
+   compatible = "snps,dw-apb-uart";
+   reg-shift = <2>;
+   reg-io-width = <4>;
+   u-boot,dm-pre-reloc;
+   reg = <0x0 0x394B0000 0x0 0x10000>;
+   interrupts = <0 154 4>;
+   clock-frequency = <200000000>;
+   hobot,disable_baud_set;
+  };
+
+  ufs: ufs@0x39410000 {
+   status = "okay";
+   compatible = "hobot,j6-ufshc";
+   reg = <0 0x39410000 0 0x10000>,
+     <0x0 0x39010000 0x0 0x1000>,
+     <0x0 0x39000000 0x0 0x1000>;
+   interrupt-parent = <&gic>;
+   interrupts = <0 171 4>;
+   ref-clk-freq = <26000000>;
+   lanes-per-direction = <2>;
+   ufstrim_flag_reg_pa = <0xCDF704C>;
+   ufstrim_reg_pa = <0xCDF7014>;
+  };
+
+  mcu_sram: mcu_sram {
+   compatible = "mmio-sram";
+   reg = <0x0 0x0c800000 0x0 0x600000>;
+
+   #address-cells = <1>;
+   #size-cells = <1>;
+   ranges = <0 0x0 0x0c800000 0x600000>;
+  };
+
+  rtc: rtc@aon {
+   compatible = "hobot,j6-rtc";
+   reg = <0x0 0x2a830000 0x0 0x10>;
+   regmap-reg = <&rtc_ctrl_reg>;
+   interrupt-parent = <&gic>;
+   interrupts = <0 284 4>;
+   rtc-as-bin-timer;
+   clock-frequency = <32768>;
+   status = "okay";
+   parity;
+   lockstep;
+  };
+
+  globaltime: globaltime {
+   compatible = "hobot,globaltime";
+   globaltime = <2>;
+   phc-index = <0>;
+   status = "okay";
+  };
+
+  rtc_sync: rtc_sync {
+   compatible = "hobot-pps";
+   status = "okay";
+   interrupt-parent = <&gic>;
+   interrupts = <0 195 1>;
+  };
+ };
+
+ cpus {
+  #size-cells = <0>;
+  #address-cells = <1>;
+
+  cpu-map {
+   socket0 {
+    cluster0 {
+     core0 {
+      cpu = <&cpu0>;
+     };
+     core1 {
+      cpu = <&cpu1>;
+     };
+     core2 {
+      cpu = <&cpu2>;
+     };
+     core3 {
+      cpu = <&cpu3>;
+     };
+    };
+
+    cluster1 {
+     core0 {
+      cpu = <&cpu4>;
+     };
+     core1 {
+      cpu = <&cpu5>;
+     };
+    };
+   };
+  };
+
+  cpu0: cpu@0 {
+   reg = <0x0>;
+   enable-method = "psci";
+   compatible = "arm,cortex-a78ae";
+   device_type = "cpu";
+  };
+  cpu1: cpu@100 {
+   reg = <0x100>;
+   enable-method = "psci";
+   compatible = "arm,cortex-a78ae";
+   device_type = "cpu";
+  };
+  cpu2: cpu@200 {
+   reg = <0x200>;
+   enable-method = "psci";
+   compatible = "arm,cortex-a78ae";
+   device_type = "cpu";
+  };
+  cpu3: cpu@300 {
+   reg = <0x300>;
+   enable-method = "psci";
+   compatible = "arm,cortex-a78ae";
+   device_type = "cpu";
+  };
+
+  cpu4: cpu@10000 {
+   reg = <0x10000>;
+   enable-method = "psci";
+   compatible = "arm,cortex-a78ae";
+   device_type = "cpu";
+  };
+
+  cpu5: cpu@10100 {
+   reg = <0x10100>;
+   enable-method = "psci";
+   compatible = "arm,cortex-a78ae";
+   device_type = "cpu";
+  };
+ };
+
+ psci {
+  compatible = "arm,psci-1.0", "arm,psci-0.2";
+  method = "smc";
+ };
+
+};
+# 1 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6e-regmap.dtsi" 1
+
+
+
+
+
+# 1 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/include/hb_regmap.h" 1
+# 7 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6e-regmap.dtsi" 2
+
+/ {
+ soc {
+  regmap-ipc {
+   compatible = "regmap-ipc";
+   reg = <0 0x29f00000 0 0x1000
+    0x0 0x0CDF0C00 0x0 0x200 >;
+   channel = <31 15>;
+  };
+
+  syscon-ipc-base {
+   compatible = "syscon-ipc-base";
+  };
+
+  tee_regmap: tee_regmap_services {
+   compatible = "syscon-tee", "simple-bus";
+   method = "smc";
+
+   fid = <(0x82000009U)>;
+   r_cmd = <(0U)>;
+   w_cmd = <(1U)>;
+   u_cmd = <(2U)>;
+  };
+
+  regmap-node {
+   ranges;
+   #address-cells = <2>;
+   #size-cells = <2>;
+
+   rtc_ctrl_reg: rtc_ctrl_reg@23207000 {
+    compatible = "syscon";
+    reg = <0x0 0x23207000 0x0 0x1000>;
+   };
+
+   bpu_pwr_sys_reg: bpu_pwr_sys_reg@28F0B000 {
+    compatible = "syscon";
+    reg = <0x0 0x28F0B000 0x0 0x1000>;
+   };
+
+   bpu_sys_reg: bpu_sys_reg@28010000 {
+    compatible = "syscon";
+    reg = <0x0 0x28010000 0x0 0x10000>;
+   };
+
+   cam_ide_reg: cam_ide_reg@37E00000 {
+    compatible = "syscon";
+    reg = <0x0 0x37E00000 0x0 0x10000>;
+   };
+
+   cam_sys_reg: cam_sys_reg@37010000 {
+    compatible = "syscon";
+    reg = <0x0 0x37010000 0x0 0x10000>;
+   };
+
+   cmn_sys_reg: cmn_sys_reg@2B043000 {
+    compatible = "syscon";
+    reg = <0x0 0x2B043000 0x0 0x1000>;
+   };
+
+   cpe_lite_reg: cpe_lite_reg@37C00000 {
+    compatible = "syscon";
+    reg = <0x0 0x37C00000 0x0 0x10000>;
+   };
+
+   cpe0_top_reg: cpe0_top_reg@37400000 {
+    compatible = "syscon";
+    reg = <0x0 0x37400000 0x0 0x10000>;
+   };
+
+   cpe1_top_reg: cpe1_top_reg@37600000 {
+    compatible = "syscon";
+    reg = <0x0 0x37600000 0x0 0x10000>;
+   };
+
+   cpu0_pwr_subsys_reg: cpu0_pwr_subsys_reg@30060000 {
+    compatible = "syscon";
+    reg = <0x0 0x30060000 0x0 0x10000>;
+   };
+
+   cpu_mp4_sys_reg: cpu_mp4_sys_reg@300A0000 {
+    compatible = "syscon";
+    reg = <0x0 0x300A0000 0x0 0x10000>;
+   };
+
+   cpu1_pwr_subsys_reg: cpu1_pwr_subsys_reg@30860000 {
+    compatible = "syscon";
+    reg = <0x0 0x30860000 0x0 0x10000>;
+   };
+
+   cpu_mp2_sys_reg: cpu_mp2_sys_reg@308A0000 {
+    compatible = "syscon";
+    reg = <0x0 0x308A0000 0x0 0x10000>;
+   };
+
+   ddr0_sys_apb_reg: ddr0_sys_apb_reg@3B050000 {
+    compatible = "syscon";
+    reg = <0x0 0x3B050000 0x0 0x10000>;
+   };
+
+   ddr1_sys_apb_reg: ddr1_sys_apb_reg@3D050000 {
+    compatible = "syscon";
+    reg = <0x0 0x3D050000 0x0 0x10000>;
+   };
+
+   ddr2_sys_apb_reg: ddr2_sys_apb_reg@3F050000 {
+    compatible = "syscon";
+    reg = <0x0 0x3F050000 0x0 0x10000>;
+   };
+
+   gpu_sys_reg: gpu_sys_reg@26C10000 {
+    compatible = "syscon";
+    reg = <0x0 0x26C10000 0x0 0x10000>;
+   };
+
+   hsi_sys_reg: hsi_sys_reg@33000000 {
+    compatible = "syscon";
+    reg = <0x0 0x33000000 0x0 0x10000>;
+   };
+
+   media_bottom_sys_reg: media_bottom_sys_reg@2A250000 {
+    compatible = "syscon";
+    reg = <0x0 0x2A250000 0x0 0x10000>;
+   };
+
+   media_bottom_sys_reg2: media_bottom_sys_reg2@2A830000 {
+    compatible = "syscon";
+    reg = <0x0 0x2A830000 0x0 0x10000>;
+   };
+
+   media_top_sys_reg: media_top_sys_reg@29010000 {
+    compatible = "syscon";
+    reg = <0x0 0x29010000 0x0 0x10000>;
+   };
+
+   media_top_sys_reg2: media_top_sys_reg2@29800000 {
+    compatible = "syscon";
+    reg = <0x0 0x29800000 0x0 0x10000>;
+   };
+
+   pcie_eth_ctrl_reg: pcie_eth_ctrl_reg@330C0000 {
+    compatible = "syscon";
+    reg = <0x0 0x330C0000 0x0 0x10000>;
+   };
+
+   peri_sys_reg: peri_sys_reg@39010000 {
+    compatible = "syscon";
+    reg = <0x0 0x39010000 0x0 0x10000>;
+   };
+
+   vdsp_sys_reg: vdsp_sys_reg@35010000 {
+    compatible = "syscon";
+    reg = <0x0 0x35010000 0x0 0x10000>;
+   };
+
+   video_sys_reg: video_sys_reg@36010000 {
+    compatible = "syscon";
+    reg = <0x0 0x36010000 0x0 0x10000>;
+   };
+
+
+   regmap_test_reg: regmap_test_reg@23217700 {
+    compatible = "syscon";
+    reg = <0x0 0x23217700 0x0 0x10>;
+   };
+   regmap_test_reg1: regmap_test_reg@23217710 {
+    compatible = "syscon";
+    reg = <0x0 0x23217710 0x0 0x10>;
+   };
+   regmap_test_reg2: regmap_test_reg@23217720 {
+    compatible = "guest driver";
+    reg = <0x0 0x23217720 0x0 0x10>;
+   };
+
+
+   rm_proc_reg: rm_proc_reg@23210480 {
+    compatible = "syscon";
+    reg = <0x0 0x23210480 0x0 0xC>;
+   };
+
+   rm_mcu_fun: rm_mcu_fun@23210480 {
+    compatible = "syscon";
+    reg = <0x0 0x23217600 0x0 0x8>;
+   };
+
+
+   hsi_eth_phy_reg: hsi_eth_phy_reg@330e0000 {
+    compatible = "syscon";
+    reg = <0x0 0x330e0000 0x0 0x10000>;
+   };
+
+
+   hsi_pcie_phy_reg: hsi_pcie_phy_reg@330d0000 {
+    compatible = "syscon";
+    reg = <0x0 0x330d0000 0x0 0x10000>;
+   };
+  };
+
+  regmap_sw_test0 {
+   compatible = "regmap_test";
+   regmap-reg = <&regmap_test_reg &regmap_test_reg1>;
+
+
+
+
+
+
+   test_region = < 0x0 0x4 0 2 0
+     0x4 0x4 1 1 0xf00
+     0x4 0x4 1 1 0xf000
+     0x4 0x4 1 1 0xf
+     0x4 0x4 1 1 0xf0
+     0x8 0x4 0 0 0
+     0x0 0x4 1 0 0
+     0x8 0x4 1 0 0
+     0x4 0x4 0 1 0xf
+     0x4 0x4 0 1 0xf0
+     >;
+   idx = <0>;
+  };
+
+  regmap_sw_test1 {
+   compatible = "regmap_test";
+   regmap-reg = <&regmap_test_reg &regmap_test_reg1>;
+
+
+
+
+
+
+   test_region = < 0x4 0x4 0 1 0xf000
+     0x4 0x4 0 1 0xf00
+     0xc 0x4 0 0 0
+     0xc 0x4 1 0 0
+     >;
+   idx = <1>;
+  };
+
+  regmap_sw_test2 {
+   compatible = "regmap_test";
+   regmap-reg = <&cpu_mp2_sys_reg>;
+   test_region = < 0x4108 0x4 0 1 0xf000
+     0x4108 0x4 0 1 0xf00
+     0x410c 0x4 0 0 0
+     >;
+   idx = <2>;
+  };
+
+
+  regmap_sw_test3 {
+   compatible = "regmap_test";
+   regmap-reg = <&regmap_test_reg2>;
+   test_region = < 0x4 0x4 0 0 0>;
+   idx = <3>;
+  };
+
+
+  regmap_sw_test4 {
+   compatible = "regmap_test";
+   regmapp = <&regmap_test_reg>;
+   test_region = < 0x4 0x4 0 0 0>;
+   idx = <4>;
+  };
+
+  regmap_sw_test5 {
+   compatible = "regmap_test";
+   regmap-reg = <&regmap_test_reg>;
+   test_region = < 0x2000 0x4 0 0 0
+     0x3 0x4 0 0 0
+     0x0 0x5 0 0 0>;
+   idx = <5>;
+  };
+ };
+};
+# 397 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6e-soc-kdump.dts" 2
+# 1 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6e-pm.dtsi" 1
+
+
+
+
+
+# 1 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/include/hb_reboot_reason.h" 1
+# 7 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6e-pm.dtsi" 2
+# 1 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/include/hb_reboot_mode.h" 1
+# 8 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6e-pm.dtsi" 2
+# 1 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/include/hb_suspend_mode.h" 1
+# 9 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6e-pm.dtsi" 2
+# 1 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/include/hb_pwr_recovery.h" 1
+# 10 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6e-pm.dtsi" 2
+
+# 1 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6e-scmi.dtsi" 1
+
+
+
+
+
+&soc {
+ clk_ipc: clk_ipc {
+  compatible = "fixed-clock";
+  clock-output-names = "clk_ipc";
+  clock-frequency = <6000000>;
+  #clock-cells = <0>;
+ };
+};
+
+/ {
+
+
+
+
+    ram@a0200000 {
+        compatible = "mmio-sram";
+        reg = <0x0 0xa0200000 0x0 0x1000>;
+
+        #address-cells = <1>;
+        #size-cells = <1>;
+        ranges = <0 0x0 0xa0200000 0x1000>;
+
+        cpu_smc_lpri: scp-shmem@0 {
+            compatible = "arm,scmi-shmem";
+            reg = <0x0 0x200>;
+        };
+
+        cpu_smc_hpri: scp-shmem@200 {
+            compatible = "arm,scmi-shmem";
+            reg = <0x200 0x200>;
+        };
+    };
+
+ firmware {
+  compatible = "simple-bus";
+  #address-cells = <2>;
+  #size-cells = <2>;
+  ranges;
+
+  scmi {
+   compatible = "hobot,scmi";
+   reg = <0 0x29f01000 0 0x1000>;
+   channel = <16 0>;
+   shmem = <&cpu_scp_lpri &cpu_scp_lpri1>;
+
+   #address-cells = <1>;
+   #size-cells = <0>;
+
+   atomic-threshold-us = <10000>;
+
+   scmi_syspd: scmi_syspd@12 {
+    reg = <0x12>;
+    #power-domain-cells = <1>;
+   };
+
+   scmi_dvfs: scmi_dvfs@13 {
+    reg = <0x13>;
+    #clock-cells = <1>;
+   };
+
+   scmi_sensors: scmi_sensors@15 {
+    reg = <0x15>;
+    #thermal-sensor-cells = <1>;
+   };
+
+   scmi_reset: scmi_reset@16 {
+    reg = <0x16>;
+    #reset-cells = <1>;
+   };
+
+   scmi_extension: scmi_extension@90 {
+    reg = <0x90>;
+   };
+  };
+
+  scmi_smc {
+   compatible = "arm,scmi-smc";
+   shmem = <&cpu_smc_lpri &cpu_smc_hpri>;
+   arm,smc-id = <0x82000010>;
+   #address-cells = <1>;
+   #size-cells = <0>;
+
+   scmi_smc_pd: protocol@11 {
+    reg = <0x11>;
+    #power-domain-cells = <1>;
+   };
+   scmi_smc_clk: protocol@14 {
+    reg = <0x14>;
+    #clock-cells = <1>;
+   };
+   scmi_smc_reset: protocol@16 {
+    reg = <0x16>;
+    #reset-cells = <1>;
+   };
+  };
+ };
+
+ smc_reset: j6x_reset_f {
+  compatible = "hobot,j6x-reset", "simple-bus";
+  #reset-cells = <1>;
+  #address-cells = <2>;
+  #size-cells = <2>;
+  ranges;
+
+  services = <&tee_regmap>;
+  reg = <0x00 0x37010000 0x00 0x1000>;
+
+  cam_subsys {
+   services = <&tee_regmap>;
+   reg = <0x0 0x37010000 0x0 0x1000>;
+  };
+
+  cam_cpe_lite {
+   services = <&tee_regmap>;
+   reg = <0x0 0x37c00000 0x0 0x1000>;
+  };
+
+  cam_cpe0 {
+   services = <&tee_regmap>;
+   reg = <0x0 0x37400000 0x0 0x1000>;
+  };
+
+  cam_cpe1 {
+   services = <&tee_regmap>;
+   reg = <0x0 0x37600000 0x0 0x1000>;
+  };
+ };
+
+ pm_tests {
+  compatible = "simple-bus";
+  #address-cells = <2>;
+  #size-cells = <2>;
+  ranges;
+
+  idu_clk_test@37e70000 {
+   compatible = "hobot,clk-test";
+   reg = <0x00 0x37e70000 0x00 0x1000>;
+   reg-names = "testreg";
+
+   power-domains = <&scmi_smc_pd (10)>;
+   clocks = <&scmi_smc_clk (22)>;
+   clock-names = "testclk";
+   ratelist = <68251499 74252220 148495468 153600000 297026831 593910101>;
+  };
+
+  j6x_scmi_test {
+   compatible = "hobot,j6x-scmi-test";
+
+   fake_power_id = <(0)>;
+   fake_syspower_id = <0>;
+   fake_perf_id = <(0)>;
+   fake_clock_id = <(0)>;
+   fake_sensor_id = <(0)>;
+   fake_reset_id = <(0)>;
+   fake_volt_id = <(0)>;
+  };
+
+  sensor_monitor {
+   monitor0 {
+    sensor_id = <(0)>;
+    trips = <80 90 100>;
+   };
+  };
+
+  scmi_reset_test {
+   compatible = "hobot,j6x-reset-test";
+   resets = <&smc_reset (216)>,
+    <&smc_reset (215)>,
+    <&scmi_reset (5)>;
+  };
+ };
+};
+
+&mcu_sram {
+ cpu_scp_lpri: scp-shmem@0 {
+  compatible = "arm,scmi-shmem";
+  reg = <0x1f1000 0x1000>;
+ };
+ cpu_scp_lpri1: scp-shmem@1 {
+  compatible = "arm,scmi-shmem";
+  reg = <0x1f2000 0x1000>;
+ };
+};
+# 12 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6e-pm.dtsi" 2
+# 1 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6e-thermal.dtsi" 1
+
+
+
+
+
+
+
+/ {
+ thermal_zones: thermal-zones {
+  fake_for_test {
+   thermal-sensors = <&scmi_sensors (0)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_cmn_pvtc1_v1 {
+   thermal-sensors = <&scmi_sensors (1)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_cmn_pvtc1_v2 {
+   thermal-sensors = <&scmi_sensors (2)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_cmn_pvtc1_v3 {
+   thermal-sensors = <&scmi_sensors (3)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_cmn_pvtc1_v4 {
+   thermal-sensors = <&scmi_sensors (4)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_cmn_pvtc1_v5 {
+   thermal-sensors = <&scmi_sensors (5)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_cmn_pvtc1_v6 {
+   thermal-sensors = <&scmi_sensors (6)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_cmn_pvtc1_v7 {
+   thermal-sensors = <&scmi_sensors (7)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_cmn_pvtc1_v8 {
+   thermal-sensors = <&scmi_sensors (8)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_cmn_pvtc1_v9 {
+   thermal-sensors = <&scmi_sensors (9)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_cmn_pvtc1_v10 {
+   thermal-sensors = <&scmi_sensors (10)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_cmn_pvtc1_v11 {
+   thermal-sensors = <&scmi_sensors (11)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_cmn_pvtc1_v12 {
+   thermal-sensors = <&scmi_sensors (12)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_cmn_pvtc1_v13 {
+   thermal-sensors = <&scmi_sensors (13)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_cmn_pvtc1_v14 {
+   thermal-sensors = <&scmi_sensors (14)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_cmn_pvtc1_v15 {
+   thermal-sensors = <&scmi_sensors (15)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_cmn_pvtc1_v16 {
+   thermal-sensors = <&scmi_sensors (16)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_cmn_pvtc1_v17 {
+   thermal-sensors = <&scmi_sensors (17)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_cmn_pvtc1_v18 {
+   thermal-sensors = <&scmi_sensors (18)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_cmn_pvtc1_v19 {
+   thermal-sensors = <&scmi_sensors (19)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_cmn_pvtc1_v20 {
+   thermal-sensors = <&scmi_sensors (20)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_cmn_pvtc1_v21 {
+   thermal-sensors = <&scmi_sensors (21)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_cmn_pvtc1_v22 {
+   thermal-sensors = <&scmi_sensors (22)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_cmn_pvtc1_v23 {
+   thermal-sensors = <&scmi_sensors (23)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_cmn_pvtc1_v24 {
+   thermal-sensors = <&scmi_sensors (24)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_cmn_pvtc1_v25 {
+   thermal-sensors = <&scmi_sensors (25)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_cmn_pvtc1_v26 {
+   thermal-sensors = <&scmi_sensors (26)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_cmn_pvtc1_v27 {
+   thermal-sensors = <&scmi_sensors (27)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_cmn_pvtc1_v28 {
+   thermal-sensors = <&scmi_sensors (28)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_cmn_pvtc1_v29 {
+   thermal-sensors = <&scmi_sensors (29)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_cmn_pvtc1_v30 {
+   thermal-sensors = <&scmi_sensors (30)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_cmn_pvtc1_v31 {
+   thermal-sensors = <&scmi_sensors (31)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_cmn_pvtc1_v32 {
+   thermal-sensors = <&scmi_sensors (32)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_cmn_pvtc1_t1 {
+   thermal-sensors = <&scmi_sensors (33)>;
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+
+   trips {
+    trip-point0 {
+     temperature = <120000000>;
+     hysteresis = <2000>;
+     type = "hot";
+    };
+   };
+  };
+  pvt_cmn_pvtc1_t2 {
+   thermal-sensors = <&scmi_sensors (34)>;
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+   trips {
+    trip-point0 {
+     temperature = <120000000>;
+     hysteresis = <2000>;
+     type = "hot";
+    };
+   };
+  };
+  pvt_mcu_pvtc1_v1 {
+   thermal-sensors = <&scmi_sensors (35)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_mcu_pvtc1_v2 {
+   thermal-sensors = <&scmi_sensors (36)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_mcu_pvtc1_v3 {
+   thermal-sensors = <&scmi_sensors (37)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_mcu_pvtc1_v4 {
+   thermal-sensors = <&scmi_sensors (38)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_mcu_pvtc1_v5 {
+   thermal-sensors = <&scmi_sensors (39)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_mcu_pvtc1_v6 {
+   thermal-sensors = <&scmi_sensors (40)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_mcu_pvtc1_v7 {
+   thermal-sensors = <&scmi_sensors (41)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_mcu_pvtc1_v8 {
+   thermal-sensors = <&scmi_sensors (42)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_mcu_pvtc1_v9 {
+   thermal-sensors = <&scmi_sensors (43)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_mcu_pvtc1_v10 {
+   thermal-sensors = <&scmi_sensors (44)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_mcu_pvtc1_v11 {
+   thermal-sensors = <&scmi_sensors (45)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_mcu_pvtc1_v12 {
+   thermal-sensors = <&scmi_sensors (46)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_mcu_pvtc1_v13 {
+   thermal-sensors = <&scmi_sensors (47)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_mcu_pvtc1_v14 {
+   thermal-sensors = <&scmi_sensors (48)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_mcu_pvtc1_v15 {
+   thermal-sensors = <&scmi_sensors (49)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_mcu_pvtc1_v16 {
+   thermal-sensors = <&scmi_sensors (50)>;
+
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+  };
+  pvt_mcu_pvtc1_t1 {
+   thermal-sensors = <&scmi_sensors (51)>;
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+   trips {
+    trip-point0 {
+     temperature = <120000000>;
+     hysteresis = <2000>;
+     type = "hot";
+    };
+   };
+  };
+  pvt_mcu_pvtc1_t2 {
+   thermal-sensors = <&scmi_sensors (52)>;
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+
+   trips {
+    trip-point0 {
+     temperature = <120000000>;
+     hysteresis = <2000>;
+     type = "hot";
+    };
+   };
+  };
+  pvt_bpu_pvtc1_t1 {
+   thermal-sensors = <&scmi_sensors (53)>;
+   polling-delay-passive = <600000>;
+   polling-delay = <600000>;
+
+   trips {
+    trip-point0 {
+     temperature = <120000000>;
+     hysteresis = <2000>;
+     type = "hot";
+    };
+   };
+  };
+ };
+};
+# 13 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6e-pm.dtsi" 2
+
+/ {
+ reboot_mode {
+  compatible = "j6x,syscon-reboot-mode";
+  fid = <0x82000015>;
+  g_cmd = <0>;
+  s_cmd = <1>;
+  v_cmd = <0x10>;
+  version = <1 0 0>;
+
+  mode-normal = <(0x5242C300 + 0)>;
+  mode-recovery = <(0x5242C300 + 3)>;
+  mode-bootloader = <(0x5242C300 + 9)>;
+  mode-whole = <(0x5242C300 + 0x20)>;
+  mode-osoff = <(0x5242C300 + 0x21)>;
+  mode-main = <(0x5242C300 + 0x23)>;
+  mode-wholeoff = <(0x5242C300 + 0x22)>;
+  mode-usb-download = <(0x5242C300 + 0xf2)>;
+  mode-uart-download = <(0x5242C300 + 0xf1)>;
+  mode-flash = <(0x5242C300 + 0xf0)>;
+  mode-usb-download-sec = <(0x5242C300 + 0xf7)>;
+  mode-uart-download-sec = <(0x5242C300 + 0xf6)>;
+  mode-flash-sec = <(0x5242C300 + 0xf5)>;
+ };
+
+ reboot-reason {
+  compatible = "j6x,syscon-reboot-reason";
+  version = <1 0 0>;
+  fid = <0x82000014>;
+  g_cmd = <0>;
+  s_cmd = <1>;
+  v_cmd = <0x10>;
+
+  reboot_magic = <((0xdead0000) + 0x1)>;
+  panic_magic = <((0xdead0000) + 0x2)>;
+  reboot_kdump_magic = <(((0xdead0000) + 0x2))>;
+ };
+
+ suspend-mode {
+  compatible = "j6x,suspend-mode";
+  version = <1 0 0>;
+  fid = <0x82000016>;
+  g_cmd = <0>;
+  s_cmd = <1>;
+  v_cmd = <0x10>;
+  i_cmd = <2>;
+  suspend_ready = <(0xdead5a10)>;
+ };
+
+ pwr_recovery {
+  compatible = "simple-bus";
+  version = <1 0 0>;
+  fid = <0x82000019>;
+  s_cmd = <0>;
+  r_cmd = <1>;
+  v_cmd = <0x10>;
+  delay = <10000>;
+
+  test {
+   compatible = "j6x,pwr-recovery";
+   power-domains = <&scmi_smc_pd (0)>;
+  };
+  lsperi {
+   compatible = "j6x,pwr-recovery";
+   power-domains = <&scmi_smc_pd (7)>;
+  };
+  hsperi {
+   compatible = "j6x,pwr-recovery";
+   power-domains = <&scmi_smc_pd (8)>;
+  };
+  video {
+   compatible = "j6x,pwr-recovery";
+   power-domains = <&scmi_smc_pd (9)>;
+  };
+  cam {
+   compatible = "j6x,pwr-recovery";
+   power-domains = <&scmi_smc_pd (10)>;
+  };
+  cam_cpe0 {
+   compatible = "j6x,pwr-recovery";
+   power-domains = <&scmi_smc_pd (11)>;
+  };
+  cam_cpe1 {
+   compatible = "j6x,pwr-recovery";
+   power-domains = <&scmi_smc_pd (12)>;
+  };
+  bpu {
+   compatible = "j6x,pwr-recovery";
+   power-domains = <&scmi_smc_pd (13)>;
+  };
+  vdsp {
+   compatible = "j6x,pwr-recovery";
+   power-domains = <&scmi_smc_pd (14)>;
+  };
+  gpu {
+   compatible = "j6x,pwr-recovery";
+   power-domains = <&scmi_smc_pd (15)>;
+  };
+ };
+
+ qga-msgfwd {
+  compatible = "hobot,qga-msgfwd";
+  instance = <12>;
+  mbox_chan_idx = <12>;
+  timeout = <0>;
+  trans_flags = <0>;
+  data_local_addr = /bits/ 64 <0>;
+  data_remote_addr = /bits/ 64 <0>;
+  data_size = <0>;
+  ctrl_local_addr = /bits/ 64 <0>;
+  ctrl_remote_addr = /bits/ 64 <0>;
+  ctrl_size = <0>;
+  num_bufs = /bits/ 16 <1>;
+  buf_size = <512>;
+ };
+};
+
+&cpu0 {
+ clocks = <&scmi_dvfs (2)>;
+};
+
+&cpu1 {
+ clocks = <&scmi_dvfs (2)>;
+};
+
+&cpu2 {
+ clocks = <&scmi_dvfs (2)>;
+};
+
+&cpu3 {
+ clocks = <&scmi_dvfs (2)>;
+};
+
+&cpu4 {
+ clocks = <&scmi_dvfs (3)>;
+};
+
+&cpu5 {
+ clocks = <&scmi_dvfs (3)>;
+};
+# 398 "/home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6e-soc-kdump.dts" 2

@@ -1,0 +1,37 @@
+hobot-j6p-hdc366-B-001.o: \
+ /home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6p-hdc366-B-001.dts \
+ /home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6p-soc.dtsi \
+ /home/huaizhenlv/630_v27/kernel/scripts/dtc/include-prefixes/dt-bindings/interrupt-controller/arm-gic.h \
+ /home/huaizhenlv/630_v27/kernel/scripts/dtc/include-prefixes/dt-bindings/interrupt-controller/irq.h \
+ /home/huaizhenlv/630_v27/kernel/scripts/dtc/include-prefixes/dt-bindings/gpio/gpio.h \
+ /home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/include/hobot_j6e_clk.h \
+ /home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/include/hobot_j6p_rst.h \
+ /home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6p-irq.dtsi \
+ /home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6p-smmu.dtsi \
+ /home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-pinctrl-j6p.dtsi \
+ /home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/include/uio_diag_id.h \
+ /home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6p-ipc.dtsi \
+ /home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/include/hobot_j6p_ipc.h \
+ /home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6p-pdma.dtsi \
+ /home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6p-regmap.dtsi \
+ /home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/include/hb_regmap.h \
+ /home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6p-pm.dtsi \
+ /home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/include/hb_reboot_reason.h \
+ /home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/include/hb_reboot_mode.h \
+ /home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/include/hb_suspend_mode.h \
+ /home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/include/hb_pwr_recovery.h \
+ /home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/include/hobot_j6p_clk.h \
+ /home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/include/hobot_j6p_pd.h \
+ /home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/include/j6x_pmic_ctrl.h \
+ /home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/include/j6x_pd_notify.h \
+ /home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/include/j6x_scmi_ext_notify.h \
+ /home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6p-scmi.dtsi \
+ /home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6p-thermal.dtsi \
+ /home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/include/hb_chip_info.h \
+ /home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6p-videosys.dtsi \
+ /home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6p-fchm.dtsi \
+ /home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6p-l2dma.dtsi \
+ /home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6p-uio.dtsi \
+ /home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6p-stl.dtsi \
+ /home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6p-matrix-camsys.dtsi \
+ /home/huaizhenlv/630_v27/kernel/arch/arm64/boot/dts/hobot/hobot-j6p-camsys.dtsi

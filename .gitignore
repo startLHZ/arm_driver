@@ -1,9 +1,19 @@
+# 编译目录
 build/
+
+# 内核模块编译产物
 *.o
 *.ko
+*.mod
 *.mod.c
 *.symvers
 *.order
 .tmp_versions/
 modules.builtin
 Module.symvers
+.*.cmd
+
+# CMake缓存
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
