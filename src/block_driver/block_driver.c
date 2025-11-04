@@ -23,12 +23,15 @@
 #define DEVICE_NAME "flashblk"
 #define KERNEL_SECTOR_SIZE 512
 
-/* Device parameters - 256 bytes starting at 0x0C0000 */
+/* Device parameters */
 #define MYBLK_SECTOR_SIZE 512
-#define MYBLK_NSECTORS 1  /* Only 1 sector (512 bytes, but only 256 bytes valid) */
 #define MYBLK_MINORS 1
-#define FLASH_DATA_SIZE 786813  /* Actual flash data size */
-#define FLASH_START_ADDR 0x000000  /* Flash start address */
+#define RAM_DATA_SIZE (3 * 1024 * 1024)  /* 3MB RAM (read-write, at offset 0) */
+#define FLASH_DATA_SIZE (512 * 1024)  /* 512KB Flash = 128 sectors × 4KB (read-write, at offset RAM_DATA_SIZE) */
+#define FLASH_START_ADDR 0x000000  /* Flash physical address */
+#define FLASH_SECTOR_SIZE 4096  /* Flash sector size for erase (4KB) */
+#define FLASH_MAX_SECTORS 128  /* Maximum sector ID (0-127) */
+#define MYBLK_TOTAL_SIZE (RAM_DATA_SIZE + FLASH_DATA_SIZE)  /* Total: 3.5MB = RAM + Flash */
 
 /* Flash I2C parameters - modify these based on your hardware */
 #define FLASH_I2C_BUS 4
@@ -47,6 +50,7 @@ struct flash_sensor_info {
 struct myblk_device {
     unsigned long size;              /* Device size in bytes */
     u8 *cache;                       /* Cache buffer for read/write */
+    u8 *ram_buf;                     /* RAM区缓冲区 */
     struct mutex lock;               /* Mutex for flash I/O (can sleep) */
     struct gendisk *gd;              /* Generic disk structure */
     struct blk_mq_tag_set tag_set;   /* blk-mq tag set */
@@ -271,52 +275,280 @@ lock_flash:
 }
 
 /*
- * Flash read operation - reads 256 bytes from 0x0C0000
- * offset is relative to the block device (0-255 for our 256 byte device)
+ * Flash erase sector operation - based on sensor_flash_sector implementation
+ * sector_id: sector number to erase (0-127)
  */
-static int flash_read(struct myblk_device *dev, loff_t offset,
-    uint8_t *data, uint32_t bytes)
+static int flash_erase_sector(struct myblk_device *dev, uint32_t sector_id)
 {
     int ret = 0;
-    uint32_t flash_addr;
+    uint8_t reg_addr[2] = {0};
+    uint8_t reg_size = 0;
+    uint8_t buf[6] = {0};
+    uint8_t buf_size = 0;
+    struct flash_sensor_info *sensor_info = &dev->flash_info;
 
-    /* Limit read to available flash data */
-    if (offset >= FLASH_DATA_SIZE) {
-        memset(data, 0, bytes);
-        return 0;
-    }
-    if (offset + bytes > FLASH_DATA_SIZE) {
-        bytes = FLASH_DATA_SIZE - offset;
-        /* Zero out the rest */
-        if (offset + bytes < MYBLK_SECTOR_SIZE) {
-            memset(data + bytes, 0, MYBLK_SECTOR_SIZE - offset - bytes);
-        }
+    if (sector_id >= FLASH_MAX_SECTORS) {
+        printk(KERN_ERR "flashblk: Invalid sector_id %u (must be 0-%d)\n", sector_id, FLASH_MAX_SECTORS - 1);
+        return -EINVAL;
     }
 
-    /* Calculate actual flash address */
-    flash_addr = FLASH_START_ADDR + offset;
+    printk(KERN_DEBUG "flashblk: Erasing flash sector %u\n", sector_id);
 
-    printk(KERN_DEBUG "flashblk: Reading %u bytes from flash addr 0x%06X (offset 0x%llX)\n",
-           bytes, flash_addr, offset);
+    /* Serial NOR Flash access unlock request */
+    ret = hb_vin_i2c_write_reg16_data8(sensor_info->bus_num,
+        sensor_info->sensor_addr, 0xFFFF, 0xF4);
+    if (ret < 0) {
+        printk(KERN_ERR "flashblk: Flash unlock failed\n");
+        return ret;
+    }
+    usleep_range(2000, 3000);
 
-    /* Use the raw flash read function */
-    ret = flash_read_raw(dev, flash_addr, data, bytes);
+    /* Serial NOR Flash access request */
+    ret = hb_vin_i2c_write_reg16_data8(sensor_info->bus_num,
+        sensor_info->sensor_addr, 0xFFFF, 0xF7);
+    if (ret < 0) {
+        printk(KERN_ERR "flashblk: Flash access request failed\n");
+        goto lock_flash;
+    }
+    usleep_range(2000, 3000);
+
+    /* Erase sector command */
+    reg_addr[0] = 0x80;
+    reg_addr[1] = 0x00;
+    reg_size = 2;
+
+    buf[0] = 0x03;  /* Erase command */
+    buf[1] = 0x00;
+    buf[2] = sector_id >> 4;
+    buf[3] = (sector_id & 0xf) << 4;
+    buf[4] = 0x00;
+    buf[5] = 0x5a;  /* Execute subcommand */
+    buf_size = 6;
+
+    ret = flash_i2c_write_retry(sensor_info->bus_num, sensor_info->sensor_addr,
+        reg_addr, reg_size, buf, buf_size);
+    if (ret < 0) {
+        printk(KERN_ERR "flashblk: Flash erase command failed\n");
+        goto lock_flash;
+    }
+    usleep_range(50000, 52000);  /* Wait for erase to complete */
+
+lock_flash:
+    /* Serial NOR Flash access lock request */
+    hb_vin_i2c_write_reg16_data8(sensor_info->bus_num,
+        sensor_info->sensor_addr, 0xFFFF, 0xF5);
+    usleep_range(2000, 3000);
+
     return ret;
 }
 
 /*
- * Flash write operation - you need to implement this based on your flash chip
+ * Flash write operation - based on sensor_flash_sector implementation
+ * offset is relative to block device start (within FLASH region)
+ * This implementation writes data to flash using sector-based operations
  */
-static int flash_write(struct myblk_device *dev, loff_t offset,
+static int flash_write(struct myblk_device *dev, loff_t offset, const uint8_t *data, uint32_t bytes)
+{
+    int ret = 0;
+    uint32_t flash_addr = FLASH_START_ADDR + offset;
+    uint8_t reg_addr[4] = {0};
+    uint8_t reg_size = 0;
+    uint8_t buf[I2C_SMBUS_BLOCK_MAX] = {0};
+    uint8_t buf_size = 0;
+    uint8_t flash_offset = 0;
+    uint32_t remaining = bytes;
+    uint32_t data_offset = 0;
+    struct flash_sensor_info *sensor_info = &dev->flash_info;
+
+    printk(KERN_DEBUG "flashblk: Writing %u bytes to flash offset 0x%llx (addr 0x%06X)\n",
+           bytes, offset, flash_addr);
+
+    /* Serial NOR Flash access unlock request */
+    ret = hb_vin_i2c_write_reg16_data8(sensor_info->bus_num,
+        sensor_info->sensor_addr, 0xFFFF, 0xF4);
+    if (ret < 0) {
+        printk(KERN_ERR "flashblk: Flash unlock failed\n");
+        return ret;
+    }
+    usleep_range(2000, 3000);
+
+    /* Serial NOR Flash write access request */
+    ret = hb_vin_i2c_write_reg16_data8(sensor_info->bus_num,
+        sensor_info->sensor_addr, 0xFFFF, 0xF7);
+    if (ret < 0) {
+        printk(KERN_ERR "flashblk: Flash write access request failed\n");
+        goto lock_flash;
+    }
+    usleep_range(2000, 3000);
+
+    /* Write data in chunks to buffer, then program to flash */
+    while (remaining > 0) {
+        uint32_t chunk_size = (remaining > 16) ? 16 : remaining;
+        
+        /* Write data to buffer */
+        reg_size = 2;
+        reg_addr[0] = 0x00;
+        reg_addr[1] = flash_offset;
+
+        ret = flash_i2c_write_retry(sensor_info->bus_num, sensor_info->sensor_addr,
+            reg_addr, reg_size, (uint8_t *)(data + data_offset), chunk_size);
+        if (ret < 0) {
+            printk(KERN_ERR "flashblk: Write to buffer failed at offset 0x%x\n", flash_offset);
+            goto lock_flash;
+        }
+
+        data_offset += chunk_size;
+        flash_offset += chunk_size;
+        remaining -= chunk_size;
+
+        /* If buffer is full (256 bytes) or no more data, program to flash */
+        if (flash_offset >= 256 || remaining == 0) {
+            /* Serial NOR Flash Write Subcommand */
+            reg_addr[0] = 0x80;
+            reg_addr[1] = 0x00;
+            reg_size = 2;
+
+            buf[0] = 0x02;  /* Write command */
+            buf[1] = 0x00;
+            buf[2] = (flash_addr >> 16) & 0xFF;
+            buf[3] = (flash_addr >> 8) & 0xFF;
+            buf[4] = flash_addr & 0xFF;
+            buf[5] = 0x5a;  /* Execute subcommand */
+            buf_size = 6;
+
+            ret = flash_i2c_write_retry(sensor_info->bus_num, sensor_info->sensor_addr,
+                reg_addr, reg_size, buf, buf_size);
+            if (ret < 0) {
+                printk(KERN_ERR "flashblk: Flash write subcommand failed\n");
+                goto lock_flash;
+            }
+            usleep_range(3000, 4000);
+
+            /* Move to next page */
+            flash_addr += flash_offset;
+            flash_offset = 0;
+        }
+    }
+
+lock_flash:
+    /* Serial NOR Flash access lock request */
+    hb_vin_i2c_write_reg16_data8(sensor_info->bus_num,
+        sensor_info->sensor_addr, 0xFFFF, 0xF5);
+    usleep_range(2000, 3000);
+
+    return ret;
+}
+
+/*
+ * Flash write with automatic sector erase
+ * This function erases the necessary sectors before writing
+ * offset: offset within Flash region (relative to FLASH_START_ADDR)
+ */
+static int flash_write_with_erase(struct myblk_device *dev, loff_t offset, 
     const uint8_t *data, uint32_t bytes)
 {
-    /* 
-     * TODO: Implement flash write operation
-     * This depends on your flash chip's write protocol
-     * May need sector erase before write
-     */
-    printk(KERN_WARNING "flashblk: Flash write not implemented yet\n");
-    return -ENOSYS;
+    int ret = 0;
+    uint32_t start_sector = offset / FLASH_SECTOR_SIZE;
+    uint32_t end_sector = (offset + bytes - 1) / FLASH_SECTOR_SIZE;
+    uint32_t sector;
+
+    printk(KERN_INFO "flashblk: Writing %u bytes to flash offset 0x%llx (sectors %u-%u)\n", 
+           bytes, offset, start_sector, end_sector);
+
+    /* Erase affected sectors first */
+    for (sector = start_sector; sector <= end_sector; sector++) {
+        ret = flash_erase_sector(dev, sector);
+        if (ret < 0) {
+            printk(KERN_ERR "flashblk: Failed to erase sector %u\n", sector);
+            return ret;
+        }
+    }
+
+    /* Now write the data using the existing flash_write function */
+    ret = flash_write(dev, offset, data, bytes);
+    
+    return ret;
+}
+
+/*
+ * Hybrid read operation with new layout: RAM first, then Flash
+ * Device layout: [RAM: 0 - RAM_DATA_SIZE] [Flash: RAM_DATA_SIZE - MYBLK_TOTAL_SIZE]
+ */
+static int hybrid_read(struct myblk_device *dev, loff_t offset,
+    uint8_t *data, uint32_t bytes)
+{
+    int ret = 0;
+    
+    if (offset < RAM_DATA_SIZE) {
+        /* Read from RAM region */
+        uint32_t ram_bytes = bytes;
+        if (offset + bytes > RAM_DATA_SIZE) {
+            ram_bytes = RAM_DATA_SIZE - offset;
+        }
+        memcpy(data, dev->ram_buf + offset, ram_bytes);
+        
+        /* If read spans into Flash region, read Flash part too */
+        if (ram_bytes < bytes) {
+            uint32_t flash_offset = 0;
+            uint32_t flash_bytes = bytes - ram_bytes;
+            uint32_t flash_addr = FLASH_START_ADDR + flash_offset;
+            
+            ret = flash_read_raw(dev, flash_addr, data + ram_bytes, flash_bytes);
+            if (ret < 0) return ret;
+        }
+    } else {
+        /* Read from Flash region */
+        uint32_t flash_offset = offset - RAM_DATA_SIZE;
+        uint32_t flash_addr = FLASH_START_ADDR + flash_offset;
+        
+        if (flash_offset + bytes > FLASH_DATA_SIZE) {
+            bytes = FLASH_DATA_SIZE - flash_offset;
+        }
+        ret = flash_read_raw(dev, flash_addr, data, bytes);
+    }
+    return ret;
+}
+
+/*
+ * Hybrid write operation with new layout: RAM first (writable), then Flash (writable with erase)
+ * Device layout: [RAM: 0 - RAM_DATA_SIZE] [Flash: RAM_DATA_SIZE - MYBLK_TOTAL_SIZE]
+ */
+static int hybrid_write(struct myblk_device *dev, loff_t offset,
+    const uint8_t *data, uint32_t bytes)
+{
+    int ret = 0;
+    
+    if (offset < RAM_DATA_SIZE) {
+        /* Write to RAM region */
+        uint32_t ram_bytes = bytes;
+        if (offset + bytes > RAM_DATA_SIZE) {
+            /* Write spans both RAM and Flash regions */
+            ram_bytes = RAM_DATA_SIZE - offset;
+            printk(KERN_DEBUG "flashblk: Write spans RAM and Flash regions\n");
+        }
+        memcpy(dev->ram_buf + offset, data, ram_bytes);
+        
+        /* If write continues into Flash region */
+        if (ram_bytes < bytes) {
+            uint32_t flash_offset = 0;
+            uint32_t flash_bytes = bytes - ram_bytes;
+            ret = flash_write_with_erase(dev, flash_offset, data + ram_bytes, flash_bytes);
+            if (ret < 0) {
+                printk(KERN_ERR "flashblk: Flash write failed\n");
+                return ret;
+            }
+        }
+        return 0;
+    } else {
+        /* Write to Flash region */
+        uint32_t flash_offset = offset - RAM_DATA_SIZE;
+        if (flash_offset + bytes > FLASH_DATA_SIZE) {
+            printk(KERN_WARNING "flashblk: Write beyond Flash region\n");
+            bytes = FLASH_DATA_SIZE - flash_offset;
+        }
+        ret = flash_write_with_erase(dev, flash_offset, data, bytes);
+        return ret;
+    }
 }
 
 /*
@@ -332,26 +564,22 @@ static blk_status_t myblk_request(struct blk_mq_hw_ctx *hctx,
     loff_t pos;
     loff_t dev_size;
     blk_status_t ret = BLK_STS_OK;
-    int flash_ret;
+    int io_ret;
     u8 *temp_buf = NULL;
     size_t total_len = blk_rq_bytes(req);
 
-    /* Start request processing */
     blk_mq_start_request(req);
 
-    /* Get position and device size */
     pos = blk_rq_pos(req) * MYBLK_SECTOR_SIZE;
     dev_size = dev->size;
 
-    /* Allocate temporary buffer for the entire request */
     temp_buf = kmalloc(total_len, GFP_KERNEL);
     if (!temp_buf) {
         printk(KERN_ERR "flashblk: Failed to allocate temp buffer\n");
         ret = BLK_STS_RESOURCE;
-        goto done;
+        goto out;
     }
 
-    /* Handle WRITE: copy data from bio to temp buffer first */
     if (req_op(req) == REQ_OP_WRITE) {
         size_t offset = 0;
         rq_for_each_segment(bvec, req, iter) {
@@ -362,30 +590,26 @@ static blk_status_t myblk_request(struct blk_mq_hw_ctx *hctx,
         }
     }
 
-    /* Check boundaries */
     if (pos + total_len > dev_size) {
         printk(KERN_ERR "flashblk: Request beyond device size\n");
         ret = BLK_STS_IOERR;
         goto free_buf;
     }
 
-    /* Lock for flash access and perform I/O (can sleep here) */
     mutex_lock(&dev->lock);
 
     switch (req_op(req)) {
     case REQ_OP_READ:
-        /* Read from Flash to temp buffer */
-        flash_ret = flash_read(dev, pos, temp_buf, total_len);
-        if (flash_ret < 0) {
-            printk(KERN_ERR "flashblk: Flash read failed at 0x%llx\n", pos);
+        io_ret = hybrid_read(dev, pos, temp_buf, total_len);
+        if (io_ret < 0) {
+            printk(KERN_ERR "flashblk: hybrid read failed at 0x%llx\n", pos);
             ret = BLK_STS_IOERR;
         }
         break;
     case REQ_OP_WRITE:
-        /* Write from temp buffer to Flash */
-        flash_ret = flash_write(dev, pos, temp_buf, total_len);
-        if (flash_ret < 0) {
-            printk(KERN_WARNING "flashblk: Flash write failed at 0x%llx\n", pos);
+        io_ret = hybrid_write(dev, pos, temp_buf, total_len);
+        if (io_ret < 0) {
+            printk(KERN_WARNING "flashblk: hybrid write failed at 0x%llx\n", pos);
             ret = BLK_STS_IOERR;
         }
         break;
@@ -397,7 +621,6 @@ static blk_status_t myblk_request(struct blk_mq_hw_ctx *hctx,
 
     mutex_unlock(&dev->lock);
 
-    /* Handle READ: copy data from temp buffer to bio */
     if (ret == BLK_STS_OK && req_op(req) == REQ_OP_READ) {
         size_t offset = 0;
         rq_for_each_segment(bvec, req, iter) {
@@ -410,13 +633,10 @@ static blk_status_t myblk_request(struct blk_mq_hw_ctx *hctx,
 
 free_buf:
     kfree(temp_buf);
-
-done:
-    /* Complete the request */
+out:
     blk_mq_end_request(req, ret);
     return ret;
 }
-
 /*
  * Block device operations
  */
@@ -457,7 +677,7 @@ static const struct block_device_operations myblk_fops = {
 /*
  * blk-mq operations
  */
-static struct blk_mq_ops myblk_mq_ops = {
+static struct blk_mq_ops myblk_mq_ops __maybe_unused = {
     .queue_rq = myblk_request,
 };
 
@@ -465,7 +685,18 @@ static struct blk_mq_ops myblk_mq_ops = {
  * Sysfs interface for direct flash access
  */
 
+static struct attribute *flashblk_attrs[] = {
+    NULL,
+};
+static const struct attribute_group flashblk_attr_group = {
+    .attrs = flashblk_attrs,
+};
+
 /* Show flash address */
+static ssize_t flash_addr_show(struct device *dev,
+    struct device_attribute *attr, char *buf)
+    __attribute__((unused));
+
 static ssize_t flash_addr_show(struct device *dev,
     struct device_attribute *attr, char *buf)
 {
@@ -476,136 +707,28 @@ static ssize_t flash_addr_show(struct device *dev,
 /* Store flash address */
 static ssize_t flash_addr_store(struct device *dev,
     struct device_attribute *attr, const char *buf, size_t count)
+    __attribute__((unused));
+
+static ssize_t flash_addr_store(struct device *dev,
+    struct device_attribute *attr, const char *buf, size_t count)
 {
     struct myblk_device *mydev = dev_get_drvdata(dev);
     uint32_t addr;
-    
     if (kstrtou32(buf, 0, &addr) != 0)
         return -EINVAL;
-    
     mydev->debug_addr = addr;
     printk(KERN_INFO "flashblk: Debug address set to 0x%08X\n", addr);
     return count;
 }
-
-/* Show flash length */
-static ssize_t flash_len_show(struct device *dev,
-    struct device_attribute *attr, char *buf)
-{
-    struct myblk_device *mydev = dev_get_drvdata(dev);
-    return sprintf(buf, "%u\n", mydev->debug_len);
-}
-
-/* Store flash length */
-static ssize_t flash_len_store(struct device *dev,
-    struct device_attribute *attr, const char *buf, size_t count)
-{
-    struct myblk_device *mydev = dev_get_drvdata(dev);
-    uint32_t len;
-    
-    if (kstrtou32(buf, 0, &len) != 0)
-        return -EINVAL;
-    
-    if (len > 256) {
-        printk(KERN_WARNING "flashblk: Length limited to 256 bytes\n");
-        len = 256;
-    }
-    
-    mydev->debug_len = len;
-    printk(KERN_INFO "flashblk: Debug length set to %u\n", len);
-    return count;
-}
-
-/* Read flash data - trigger actual flash read */
-static ssize_t flash_data_show(struct device *dev,
-    struct device_attribute *attr, char *buf)
-{
-    struct myblk_device *mydev = dev_get_drvdata(dev);
-    int ret;
-    int i;
-    ssize_t len = 0;
-    
-    if (mydev->debug_len == 0 || mydev->debug_len > 256) {
-        return sprintf(buf, "Error: Invalid length (must be 1-256)\n");
-    }
-    
-    if (!mydev->debug_buf) {
-        mydev->debug_buf = kmalloc(256, GFP_KERNEL);
-        if (!mydev->debug_buf)
-            return sprintf(buf, "Error: Memory allocation failed\n");
-    }
-    
-    memset(mydev->debug_buf, 0, 256);
-    
-    /* Perform flash read */
-    mutex_lock(&mydev->lock);
-    ret = flash_read_raw(mydev, mydev->debug_addr, mydev->debug_buf, mydev->debug_len);
-    mutex_unlock(&mydev->lock);
-    
-    if (ret < 0) {
-        return sprintf(buf, "Error: Flash read failed (ret=%d)\n", ret);
-    }
-    
-    for (i = 0; i < mydev->debug_len; i++) {
-        if (i % 16 == 0)
-            len += sprintf(buf + len, "\n%04X: ", i);
-        len += sprintf(buf + len, "%02X ", mydev->debug_buf[i]);
-    }
-    len += sprintf(buf + len, "\n");
-    
-    return len;
-}
-
-/* Store flash_data - simplified interface: "addr len" */
-static ssize_t flash_data_store(struct device *dev,
-    struct device_attribute *attr, const char *buf, size_t count)
-{
-    struct myblk_device *mydev = dev_get_drvdata(dev);
-    uint32_t addr, len;
-    int ret;
-    
-    ret = sscanf(buf, "%i %u", &addr, &len);
-    if (ret != 2) {
-        printk(KERN_ERR "flashblk: Invalid format. Use: echo 0xADDRESS LENGTH > flash_data\n");
-        return -EINVAL;
-    }
-    
-    if (len > 256) {
-        printk(KERN_WARNING "flashblk: Length limited to 256 bytes\n");
-        len = 256;
-    }
-    
-    mydev->debug_addr = addr;
-    mydev->debug_len = len;
-    
-    printk(KERN_INFO "flashblk: Set debug addr=0x%08X len=%u\n", addr, len);
-    return count;
-}
-
-/* Device attributes */
-static DEVICE_ATTR(flash_addr, 0644, flash_addr_show, flash_addr_store);
-static DEVICE_ATTR(flash_len, 0644, flash_len_show, flash_len_store);
-static DEVICE_ATTR(flash_data, 0644, flash_data_show, flash_data_store);
-
-static struct attribute *flashblk_attrs[] = {
-    &dev_attr_flash_addr.attr,
-    &dev_attr_flash_len.attr,
-    &dev_attr_flash_data.attr,
-    NULL,
-};
-
-static const struct attribute_group flashblk_attr_group = {
-    .attrs = flashblk_attrs,
-};
 
 /*
  * Initialize the device
  */
 static int __init myblk_init(void)
 {
-    int ret;
+    int ret = 0;
 
-    printk(KERN_INFO "flashblk: Initializing Flash block device driver\n");
+    printk(KERN_INFO "flashblk: Initializing Flash+RAM hybrid block device driver\n");
 
     /* Allocate device structure */
     myblk_dev = kzalloc(sizeof(struct myblk_device), GFP_KERNEL);
@@ -614,45 +737,53 @@ static int __init myblk_init(void)
         return -ENOMEM;
     }
 
-    /* Set device size - adjust to your flash capacity */
-    myblk_dev->size = MYBLK_NSECTORS * MYBLK_SECTOR_SIZE;
+    /* Set device size */
+    myblk_dev->size = MYBLK_TOTAL_SIZE;
 
-    /* Initialize Flash sensor info - MODIFY THESE VALUES */
-    myblk_dev->flash_info.bus_num = FLASH_I2C_BUS;
-    myblk_dev->flash_info.sensor_addr = FLASH_I2C_ADDR;
-
-    /* Allocate cache buffer for flash operations */
-    myblk_dev->cache = vmalloc(MYBLK_SECTOR_SIZE * 16); /* 8KB cache */
+    /* Allocate cache buffer */
+    myblk_dev->cache = vmalloc(MYBLK_SECTOR_SIZE);
     if (!myblk_dev->cache) {
         printk(KERN_ERR "flashblk: Failed to allocate cache buffer\n");
         ret = -ENOMEM;
         goto out_free_dev;
     }
-    memset(myblk_dev->cache, 0, MYBLK_SECTOR_SIZE * 16);
 
-    /* Initialize mutex (can sleep, suitable for I2C operations) */
+    /* Allocate RAM buffer */
+    myblk_dev->ram_buf = vmalloc(RAM_DATA_SIZE);
+    if (!myblk_dev->ram_buf) {
+        printk(KERN_ERR "flashblk: Failed to allocate RAM buffer\n");
+        ret = -ENOMEM;
+        goto out_free_cache;
+    }
+    memset(myblk_dev->ram_buf, 0, RAM_DATA_SIZE);
+
+    /* Initialize flash info */
+    myblk_dev->flash_info.bus_num = FLASH_I2C_BUS;
+    myblk_dev->flash_info.sensor_addr = FLASH_I2C_ADDR;
+
+    /* Initialize mutex */
     mutex_init(&myblk_dev->lock);
 
     /* Register block device */
     myblk_major = register_blkdev(0, DEVICE_NAME);
     if (myblk_major < 0) {
-        printk(KERN_ERR "myblkdev: Failed to register block device\n");
+        printk(KERN_ERR "flashblk: Failed to register block device\n");
         ret = myblk_major;
-        goto out_free_data;
+        goto out_free_ram;
     }
 
-    /* Initialize tag set for blk-mq */
+    /* Initialize blk-mq tag set */
     myblk_dev->tag_set.ops = &myblk_mq_ops;
     myblk_dev->tag_set.nr_hw_queues = 1;
     myblk_dev->tag_set.queue_depth = 128;
     myblk_dev->tag_set.numa_node = NUMA_NO_NODE;
     myblk_dev->tag_set.cmd_size = 0;
-    myblk_dev->tag_set.flags = BLK_MQ_F_SHOULD_MERGE;
+    myblk_dev->tag_set.flags = BLK_MQ_F_SHOULD_MERGE | BLK_MQ_F_BLOCKING;
     myblk_dev->tag_set.driver_data = myblk_dev;
 
     ret = blk_mq_alloc_tag_set(&myblk_dev->tag_set);
     if (ret) {
-        printk(KERN_ERR "myblkdev: Failed to allocate tag set\n");
+        printk(KERN_ERR "flashblk: Failed to allocate tag set\n");
         goto out_unregister;
     }
 
@@ -660,25 +791,24 @@ static int __init myblk_init(void)
     myblk_dev->gd = blk_mq_alloc_disk(&myblk_dev->tag_set, myblk_dev);
     if (IS_ERR(myblk_dev->gd)) {
         ret = PTR_ERR(myblk_dev->gd);
-        printk(KERN_ERR "myblkdev: Failed to allocate disk\n");
+        printk(KERN_ERR "flashblk: Failed to allocate disk\n");
         goto out_free_tag_set;
     }
 
-    myblk_dev->queue = myblk_dev->gd->queue;
-    myblk_dev->queue->queuedata = myblk_dev;
-
-    /* Set up gendisk */
     myblk_dev->gd->major = myblk_major;
     myblk_dev->gd->first_minor = 0;
     myblk_dev->gd->minors = MYBLK_MINORS;
     myblk_dev->gd->fops = &myblk_fops;
     myblk_dev->gd->private_data = myblk_dev;
     snprintf(myblk_dev->gd->disk_name, 32, DEVICE_NAME);
-    set_capacity(myblk_dev->gd, MYBLK_NSECTORS);
 
-    /* Set logical block size */
+    myblk_dev->queue = myblk_dev->gd->queue;
+    myblk_dev->queue->queuedata = myblk_dev;
     blk_queue_logical_block_size(myblk_dev->queue, MYBLK_SECTOR_SIZE);
     blk_queue_physical_block_size(myblk_dev->queue, MYBLK_SECTOR_SIZE);
+    
+    /* Set capacity AFTER setting block sizes */
+    set_capacity(myblk_dev->gd, myblk_dev->size / MYBLK_SECTOR_SIZE);
 
     /* Add disk */
     ret = add_disk(myblk_dev->gd);
@@ -687,41 +817,12 @@ static int __init myblk_init(void)
         goto out_cleanup_disk;
     }
 
-    /* Create sysfs interface for debug access */
-    myblk_dev->flash_class = class_create(THIS_MODULE, "flashblk");
-    if (IS_ERR(myblk_dev->flash_class)) {
-        printk(KERN_WARNING "flashblk: Failed to create class for sysfs\n");
-        myblk_dev->flash_class = NULL;
-    } else {
-        myblk_dev->flash_device = device_create(myblk_dev->flash_class, NULL,
-                                                 MKDEV(0, 0), myblk_dev, "flashblk");
-        if (IS_ERR(myblk_dev->flash_device)) {
-            printk(KERN_WARNING "flashblk: Failed to create device for sysfs\n");
-            myblk_dev->flash_device = NULL;
-        } else {
-            ret = sysfs_create_group(&myblk_dev->flash_device->kobj, &flashblk_attr_group);
-            if (ret) {
-                printk(KERN_WARNING "flashblk: Failed to create sysfs group\n");
-            } else {
-                printk(KERN_INFO "flashblk: Sysfs interface created at /sys/class/flashblk/\n");
-                printk(KERN_INFO "flashblk: Usage: echo 0xADDRESS LENGTH > /sys/class/flashblk/flash_data\n");
-                printk(KERN_INFO "flashblk:        cat /sys/class/flashblk/flash_data\n");
-            }
-        }
-    }
-
-    /* Initialize debug parameters */
-    myblk_dev->debug_addr = FLASH_START_ADDR;
-    myblk_dev->debug_len = 1;
-    myblk_dev->debug_buf = NULL;
-
-    printk(KERN_INFO "flashblk: Block device registered successfully\n");
-    printk(KERN_INFO "flashblk: Device: /dev/%s, Size: %u bytes (%u sectors)\n", 
-           DEVICE_NAME, FLASH_DATA_SIZE, MYBLK_NSECTORS);
-    printk(KERN_INFO "flashblk: Flash Address: 0x%06X - 0x%06X\n",
-           FLASH_START_ADDR, FLASH_START_ADDR + FLASH_DATA_SIZE - 1);
-    printk(KERN_INFO "flashblk: I2C Bus: %d, Address: 0x%02X\n",
-           myblk_dev->flash_info.bus_num, myblk_dev->flash_info.sensor_addr);
+    printk(KERN_INFO "flashblk: Flash+RAM hybrid block device initialized successfully\n");
+    printk(KERN_INFO "flashblk: Device size: %lu bytes (%lu sectors)\n",
+           myblk_dev->size, myblk_dev->size / MYBLK_SECTOR_SIZE);
+    printk(KERN_INFO "flashblk: RAM region (read-write): 0 - %d bytes\n", RAM_DATA_SIZE);
+    printk(KERN_INFO "flashblk: Flash region (read-write with erase): %d - %lu bytes\n", RAM_DATA_SIZE, myblk_dev->size);
+    printk(KERN_INFO "flashblk: Flash sector size: %d bytes\n", FLASH_SECTOR_SIZE);
 
     return 0;
 
@@ -731,10 +832,13 @@ out_free_tag_set:
     blk_mq_free_tag_set(&myblk_dev->tag_set);
 out_unregister:
     unregister_blkdev(myblk_major, DEVICE_NAME);
-out_free_data:
+out_free_ram:
+    vfree(myblk_dev->ram_buf);
+out_free_cache:
     vfree(myblk_dev->cache);
 out_free_dev:
     kfree(myblk_dev);
+    myblk_dev = NULL;
     return ret;
 }
 
@@ -743,10 +847,9 @@ out_free_dev:
  */
 static void __exit myblk_exit(void)
 {
-    printk(KERN_INFO "flashblk: Cleaning up Flash block device driver\n");
+    printk(KERN_INFO "flashblk: Cleaning up Flash+RAM hybrid block device driver\n");
 
     if (myblk_dev) {
-        /* Remove sysfs interface */
         if (myblk_dev->flash_device) {
             sysfs_remove_group(&myblk_dev->flash_device->kobj, &flashblk_attr_group);
             device_destroy(myblk_dev->flash_class, MKDEV(0, 0));
@@ -757,24 +860,21 @@ static void __exit myblk_exit(void)
         if (myblk_dev->debug_buf) {
             kfree(myblk_dev->debug_buf);
         }
-
         if (myblk_dev->gd) {
             del_gendisk(myblk_dev->gd);
             put_disk(myblk_dev->gd);
         }
-        
         blk_mq_free_tag_set(&myblk_dev->tag_set);
-        
         if (myblk_major > 0)
             unregister_blkdev(myblk_major, DEVICE_NAME);
-        
         if (myblk_dev->cache)
             vfree(myblk_dev->cache);
-        
+        if (myblk_dev->ram_buf)
+            vfree(myblk_dev->ram_buf);
         kfree(myblk_dev);
     }
 
-    printk(KERN_INFO "flashblk: Block device driver unloaded\n");
+    printk(KERN_INFO "flashblk: Hybrid block device driver unloaded\n");
 }
 
 module_init(myblk_init);
