@@ -7,3 +7,6 @@ add_subdirectory(simple_driver)
 # Block Driver
 add_subdirectory(block_driver)
 
+# Network Block Driver
+add_subdirectory(net_block_driver)
+
