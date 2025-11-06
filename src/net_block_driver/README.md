@@ -11,6 +11,7 @@
 - [网络协议](#网络协议)
 - [性能测试](#性能测试)
 - [高级配置](#高级配置)
+- [内核机制详解](#内核机制详解)
 - [开发参考](#开发参考)
 
 ---
@@ -411,6 +412,259 @@ echo "1" > /sys/block/netblk/connect
 1. 将 `netblk_device` 改为数组或链表
 2. 为每个设备分配不同的 minor 号
 3. 修改 gendisk 注册逻辑
+
+## 内核机制详解
+
+### 文件操作表设置与调用机制
+
+#### 1. 块设备文件操作表的设置过程
+
+在 Linux 内核中，块设备使用 `block_device_operations` 结构体定义设备的操作函数，这是 VFS（虚拟文件系统）实现多态性的关键机制。
+
+##### 定义设备操作表
+
+```c
+// 在 net_block_driver.c 第 494 行定义
+static const struct block_device_operations netblk_fops = {
+    .owner = THIS_MODULE,
+    .open = netblk_open,
+    .release = netblk_release,
+    .getgeo = netblk_getgeo,
+};
+```
+
+##### 绑定到 gendisk
+
+```c
+// 在 netblk_init() 函数中，约 735 行
+netblk_dev->gd->fops = &netblk_fops;  // 建立操作表关联
+netblk_dev->gd->private_data = netblk_dev;
+```
+
+#### 2. VFS 层的文件操作表传递机制
+
+当用户空间程序打开块设备文件时，会经历以下过程：
+
+##### 核心代码分析
+
+```c
+// VFS 层在 do_dentry_open() 中执行
+f->f_op = fops_get(inode->i_fop);
+```
+
+**这行代码的作用：**
+1. 从 inode 获取文件操作表：`inode->i_fop`
+2. 增加模块引用计数：`fops_get()` 防止模块被卸载
+3. 赋值给 file 结构：将操作表指针赋给打开的文件对象 `f->f_op`
+
+##### 完整调用链路
+
+```
+用户空间: open("/dev/netblk", O_RDWR)
+    ↓
+sys_open()                          # 系统调用入口
+    ↓
+do_sys_open()                       # 打开文件的核心实现
+    ↓
+do_filp_open()                      # 路径查找和文件打开
+    ↓
+path_openat()                       # 路径解析
+    ↓
+do_dentry_open()                    # 执行 f->f_op = fops_get(inode->i_fop)
+    ↓
+f->f_op->open()                     # 调用块设备的 open 函数
+    ↓
+blkdev_open()                       # 通用块设备打开函数
+    ↓
+disk->fops->open()                  # 调用设备特定的 open
+    ↓
+netblk_open()                       # 最终调用我们的驱动函数
+```
+
+#### 3. 块设备的两级操作表机制
+
+块设备使用**两级文件操作表**设计：
+
+```
+第一级：def_blk_fops (通用块设备操作表)
+    ├─ open         = blkdev_open()
+    ├─ release      = blkdev_release()
+    ├─ read_iter    = blkdev_read_iter()
+    ├─ write_iter   = blkdev_write_iter()
+    └─ llseek       = block_llseek()
+    
+第二级：netblk_fops (设备特定操作表)
+    ├─ owner        = THIS_MODULE
+    ├─ open         = netblk_open()
+    ├─ release      = netblk_release()
+    └─ getgeo       = netblk_getgeo()
+```
+
+##### inode 中的文件操作表来源
+
+```c
+// 在内核 fs/block_dev.c 中定义
+static const struct file_operations def_blk_fops = {
+    .open           = blkdev_open,
+    .release        = blkdev_release,
+    .llseek         = block_llseek,
+    .read_iter      = blkdev_read_iter,
+    .write_iter     = blkdev_write_iter,
+    .iopoll         = blkdev_iopoll,
+    .fsync          = blkdev_fsync,
+    // ...
+};
+
+// 块设备的 inode 在创建时：
+inode->i_fop = &def_blk_fops;  // 指向通用块设备操作表
+```
+
+#### 4. 实际执行流程详解
+
+##### 打开设备的完整过程
+
+```c
+// 步骤 1: 用户空间调用
+int fd = open("/dev/netblk", O_RDWR);
+
+// 步骤 2: VFS 层获取文件操作表
+// 在 do_dentry_open() 中：
+f->f_op = fops_get(inode->i_fop);  
+// 此时 f->f_op = &def_blk_fops (通用块设备操作表)
+
+// 步骤 3: 调用通用块设备的 open
+f->f_op->open(inode, file);  
+// 实际调用 blkdev_open()
+
+// 步骤 4: blkdev_open() 内部查找 gendisk
+static int blkdev_open(struct inode *inode, struct file *filp)
+{
+    struct block_device *bdev;
+    struct gendisk *disk;
+    int ret;
+    
+    // 获取块设备结构
+    bdev = blkdev_get_by_dev(inode->i_rdev, filp->f_mode, filp);
+    
+    // 获取 gendisk
+    disk = bdev->bd_disk;  // 这是我们注册的 gendisk
+    
+    // 调用设备特定的 open 函数
+    if (disk->fops->open) {
+        ret = disk->fops->open(bdev, filp->f_mode);
+        // ↑ 这里调用 netblk_fops->open，即 netblk_open()
+    }
+    
+    return ret;
+}
+
+// 步骤 5: 执行我们的驱动函数
+static int netblk_open(struct block_device *bdev, fmode_t mode)
+{
+    struct netblk_device *dev = bdev->bd_disk->private_data;
+    pr_info("netblk: Device opened\n");
+    return 0;
+}
+```
+
+#### 5. 关键数据结构关系
+
+```
+用户空间文件描述符: fd = 3
+    ↓
+VFS 层: struct file
+    ├─ f_op = &def_blk_fops          (从 inode->i_fop 复制)
+    ├─ f_mode = FMODE_READ|FMODE_WRITE
+    └─ f_inode
+           ├─ i_fop = &def_blk_fops   (通用块设备操作表)
+           └─ i_bdev (struct block_device)
+                  └─ bd_disk (struct gendisk)
+                         ├─ fops = &netblk_fops  (我们的操作表)
+                         ├─ private_data = netblk_dev
+                         └─ queue (request_queue)
+```
+
+#### 6. I/O 请求处理路径
+
+**注意**：实际的读写操作并不通过 `fops`，而是通过 blk-mq 机制：
+
+```
+用户空间: read(fd, buf, size) / write(fd, buf, size)
+    ↓
+VFS: vfs_read() / vfs_write()
+    ↓
+def_blk_fops.read_iter / write_iter
+    ↓
+Block Layer (通用块层)
+    ↓
+blk-mq (多队列块设备框架)
+    ↓
+netblk_queue_rq()                    # 我们定义的队列操作
+    ↓
+netblk_request()                     # 请求处理函数
+    ↓
+netblk_net_read() / netblk_net_write()  # 网络传输
+    ↓
+TCP/IP 协议栈
+    ↓
+网络 → 服务器
+```
+
+#### 7. 为什么需要两级操作表？
+
+**设计目的：**
+
+1. **统一接口**
+   - 所有块设备对外都使用 `def_blk_fops`
+   - 用户空间程序无需关心底层设备类型
+   - VFS 层统一处理缓存、权限检查等
+
+2. **设备特定操作**
+   - 通过 `gendisk->fops` 调用设备特定的 `open/release/getgeo`
+   - 允许驱动实现自定义行为
+   - 保持灵活性和可扩展性
+
+3. **模块引用管理**
+   - `fops_get()` 自动增加模块引用计数
+   - 确保驱动模块在使用时不会被卸载
+   - `fops_put()` 在关闭时减少引用计数
+
+4. **I/O 路径优化**
+   - 读写操作通过 blk-mq 框架处理（更高效）
+   - `fops` 只处理管理操作（open/close/ioctl）
+   - 分离控制路径和数据路径
+
+#### 8. 代码追踪示例
+
+如果想在内核中追踪这个过程，可以添加以下调试代码：
+
+```c
+// 在 netblk_open() 中添加
+static int netblk_open(struct block_device *bdev, fmode_t mode)
+{
+    struct netblk_device *dev = bdev->bd_disk->private_data;
+    
+    pr_info("=== netblk_open called ===\n");
+    pr_info("gendisk: %p\n", bdev->bd_disk);
+    pr_info("gendisk->fops: %p\n", bdev->bd_disk->fops);
+    pr_info("Expected fops: %p\n", &netblk_fops);
+    pr_info("private_data: %p\n", dev);
+    
+    return 0;
+}
+```
+
+查看调用栈：
+
+```bash
+# 在客户端执行
+echo t > /proc/sysrq-trigger  # 触发任务栈转储
+
+# 查看内核日志
+dmesg | grep -A 20 "netblk_open"
+```
+
+---
 
 ## 📚 开发参考
 
