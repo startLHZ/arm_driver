@@ -1,0 +1,41 @@
+CompileFlags:
+  Add:
+    # 内核头文件路径
+    - -I/usr/src/linux-headers-6.8.0-79-generic/include
+    - -I/usr/src/linux-headers-6.8.0-79-generic/arch/x86/include
+    - -I/usr/src/linux-headers-6.8.0-79-generic/arch/x86/include/generated
+    - -I/usr/src/linux-headers-6.8.0-79-generic/include/uapi
+    - -I/usr/src/linux-headers-6.8.0-79-generic/arch/x86/include/uapi
+    # 项目头文件路径
+    - -I/home/huaizhenlv/linux_arm_driver/include
+    # 内核宏定义
+    - -D__KERNEL__
+    - -DMODULE
+    - -DCONFIG_X86_64
+    - -DKBUILD_MODNAME=\"char_driver\"
+    # 编译器标准
+    - -std=gnu11
+    - -nostdinc
+    - -isystem
+    - /usr/lib/gcc/x86_64-linux-gnu/11/include
+  Remove:
+    # 移除一些可能导致问题的标志
+    - -mpreferred-stack-boundary=*
+    - -mindirect-branch=*
+    - -fconserve-stack
+    - -mrecord-mcount
+    - -fno-allow-store-data-races
+
+Diagnostics:
+  UnusedIncludes: None
+  MissingIncludes: None
+  Suppress:
+    - pp_file_not_found
+    - drv_unknown_argument
+    - err_drv_unsupported_opt
+
+InlayHints:
+  Enabled: Yes
+  ParameterNames: Yes
+  DeducedTypes: Yes
+

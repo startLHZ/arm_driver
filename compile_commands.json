@@ -1,0 +1,23 @@
+[
+  {
+    "directory": "/home/huaizhenlv/linux_arm_driver/src/char_driver",
+    "command": "gcc -nostdinc -isystem /usr/lib/gcc/x86_64-linux-gnu/11/include -I/usr/src/linux-headers-6.8.0-79-generic/include -I/usr/src/linux-headers-6.8.0-79-generic/arch/x86/include -I/usr/src/linux-headers-6.8.0-79-generic/arch/x86/include/generated -I/usr/src/linux-headers-6.8.0-79-generic/include/uapi -I/usr/src/linux-headers-6.8.0-79-generic/arch/x86/include/uapi -I/home/huaizhenlv/linux_arm_driver/include -D__KERNEL__ -DMODULE -DKBUILD_MODNAME=\\\"char_driver\\\" -std=gnu11 -c -o char_driver.o char_driver.c",
+    "file": "/home/huaizhenlv/linux_arm_driver/src/char_driver/char_driver.c"
+  },
+  {
+    "directory": "/home/huaizhenlv/linux_arm_driver/src/simple_driver",
+    "command": "gcc -nostdinc -isystem /usr/lib/gcc/x86_64-linux-gnu/11/include -I/usr/src/linux-headers-6.8.0-79-generic/include -I/usr/src/linux-headers-6.8.0-79-generic/arch/x86/include -I/usr/src/linux-headers-6.8.0-79-generic/arch/x86/include/generated -I/usr/src/linux-headers-6.8.0-79-generic/include/uapi -I/usr/src/linux-headers-6.8.0-79-generic/arch/x86/include/uapi -I/home/huaizhenlv/linux_arm_driver/include -D__KERNEL__ -DMODULE -DKBUILD_MODNAME=\\\"simple_driver\\\" -std=gnu11 -c -o simple_driver.o simple_driver.c",
+    "file": "/home/huaizhenlv/linux_arm_driver/src/simple_driver/simple_driver.c"
+  },
+  {
+    "directory": "/home/huaizhenlv/linux_arm_driver/src/block_driver",
+    "command": "gcc -nostdinc -isystem /usr/lib/gcc/x86_64-linux-gnu/11/include -I/usr/src/linux-headers-6.8.0-79-generic/include -I/usr/src/linux-headers-6.8.0-79-generic/arch/x86/include -I/usr/src/linux-headers-6.8.0-79-generic/arch/x86/include/generated -I/usr/src/linux-headers-6.8.0-79-generic/include/uapi -I/usr/src/linux-headers-6.8.0-79-generic/arch/x86/include/uapi -I/home/huaizhenlv/linux_arm_driver/include -D__KERNEL__ -DMODULE -DKBUILD_MODNAME=\\\"block_driver\\\" -std=gnu11 -c -o block_driver.o block_driver.c",
+    "file": "/home/huaizhenlv/linux_arm_driver/src/block_driver/block_driver.c"
+  },
+  {
+    "directory": "/home/huaizhenlv/linux_arm_driver/src/net_block_driver",
+    "command": "gcc -nostdinc -isystem /usr/lib/gcc/x86_64-linux-gnu/11/include -I/usr/src/linux-headers-6.8.0-79-generic/include -I/usr/src/linux-headers-6.8.0-79-generic/arch/x86/include -I/usr/src/linux-headers-6.8.0-79-generic/arch/x86/include/generated -I/usr/src/linux-headers-6.8.0-79-generic/include/uapi -I/usr/src/linux-headers-6.8.0-79-generic/arch/x86/include/uapi -I/home/huaizhenlv/linux_arm_driver/include -D__KERNEL__ -DMODULE -DKBUILD_MODNAME=\\\"net_block_driver\\\" -std=gnu11 -c -o net_block_driver.o net_block_driver.c",
+    "file": "/home/huaizhenlv/linux_arm_driver/src/net_block_driver/net_block_driver.c"
+  }
+]
+
