@@ -101,8 +101,11 @@ linux_arm_driver/
 └── output/                      # 🎯 最终生成的文件
     ├── simple_driver.ko        # 简单驱动模块
     ├── block_driver.ko         # 块设备驱动模块
+    ├── char_driver.ko          # 字符设备驱动模块
     ├── test_app                # simple_driver测试程序
-    └── test_block              # block_driver测试程序
+    ├── test_block              # block_driver测试程序
+    ├── test_chardev            # char_driver测试程序
+    └── test_char_device.sh     # char_driver自动化脚本
 ```
 
 **💡 提示**: 每个驱动都有独立的目录，便于管理和扩展！
@@ -125,6 +128,19 @@ linux_arm_driver/
 - **文档**: 
   - [src/block_driver/README.md](src/block_driver/README.md)
   - [BLOCK_DEVICE_USAGE.md](BLOCK_DEVICE_USAGE.md) - 详细使用指南
+
+### 3. Character Device Driver
+- **位置**: `src/char_driver/`
+- **说明**: 虚拟字符设备驱动，使用内存作为存储后端
+- **特性**: 
+  - 支持 read/write/llseek/ioctl 操作
+  - 自动创建设备节点 `/dev/mychardev`
+  - 多进程并发安全（互斥锁保护）
+  - 4KB 内存缓冲区
+  - 完整的测试程序和自动化脚本
+- **文档**: 
+  - [src/char_driver/README.md](src/char_driver/README.md)
+  - [CHAR_DEVICE_USAGE.md](CHAR_DEVICE_USAGE.md) - 快速使用指南
 
 ## ➕ 添加新驱动
 

@@ -9,3 +9,6 @@ add_subdirectory(block_driver)
 
 # Network Block Device Server
 add_subdirectory(net_block_server)
+
+# Character Device Driver 测试程序
+add_subdirectory(char_driver)

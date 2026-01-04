@@ -30,7 +30,7 @@ add_subdirectory(src)
 add_subdirectory(examples)
 
 # 内核模块编译 - 为每个驱动单独编译
-set(DRIVER_DIRS simple_driver block_driver net_block_driver)
+set(DRIVER_DIRS simple_driver block_driver net_block_driver char_driver)
 
 add_custom_target(modules ALL
     COMMENT "Building all kernel modules"

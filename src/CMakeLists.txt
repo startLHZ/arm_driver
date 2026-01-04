@@ -10,3 +10,5 @@ add_subdirectory(block_driver)
 # Network Block Driver
 add_subdirectory(net_block_driver)
 
+# Character Device Driver
+add_subdirectory(char_driver)
