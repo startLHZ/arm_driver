@@ -12,3 +12,6 @@ add_subdirectory(net_block_server)
 
 # Character Device Driver 测试程序
 add_subdirectory(char_driver)
+
+# I2C Driver 测试程序
+add_subdirectory(i2c_driver)

@@ -12,3 +12,6 @@ add_subdirectory(net_block_driver)
 
 # Character Device Driver
 add_subdirectory(char_driver)
+
+# I2C Driver
+add_subdirectory(i2c_driver)
