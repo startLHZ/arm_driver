@@ -19,6 +19,21 @@ CROSS_COMPILE=${TOOLCHAIN_PATH}/aarch64-none-linux-gnu-
 export CC=${TOOLCHAIN_PATH}/aarch64-none-linux-gnu-gcc
 # ===================================
 
+# 检查内核源码是否存在
+if [ ! -f "$KERNEL_DIR/Makefile" ] || [ ! -d "$KERNEL_DIR/scripts" ]; then
+    echo "=========================================="
+    echo "❌ 错误: 内核源码未配置或不完整"
+    echo "=========================================="
+    echo ""
+    echo "检测到 $KERNEL_DIR 目录不包含完整的内核源码。"
+    echo ""
+    echo "请先运行以下命令配置内核源码："
+    echo "  ./setup_kernel.sh"
+    echo ""
+    echo "该脚本将自动从 GitHub 下载并配置内核源码。"
+    echo "=========================================="
+    exit 1
+fi
 
 # 清理旧的编译
 rm -rf build
@@ -29,6 +44,7 @@ cd build
 cmake -DKERNEL_DIR="$KERNEL_DIR" \
       -DARCH="$ARCH" \
       -DCROSS_COMPILE="$CROSS_COMPILE" \
+      -DCMAKE_TRY_COMPILE_TARGET_TYPE="STATIC_LIBRARY" \
       .. || exit 1
 
 # 编译测试程序和内核模块

@@ -1,1 +1,0 @@
-#define UTS_RELEASE "6.1.134-rt51-08400-g6efaa675707d"

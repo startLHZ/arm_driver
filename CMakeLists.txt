@@ -26,8 +26,17 @@ message(STATUS "交叉编译器:   ${CROSS_COMPILE}")
 message(STATUS "内核路径:     ${KERNEL_DIR}")
 message(STATUS "=====================================")
 
+# 可选：编译用户态测试程序（需要完整的工具链）
+option(BUILD_EXAMPLES "Build example test programs" OFF)
+
 add_subdirectory(src)
-add_subdirectory(examples)
+
+if(BUILD_EXAMPLES)
+    message(STATUS "⚠️  注意: 编译测试程序需要完整的用户态库")
+    add_subdirectory(examples)
+else()
+    message(STATUS "跳过测试程序编译（使用 -DBUILD_EXAMPLES=ON 启用）")
+endif()
 
 # 内核模块编译 - 为每个驱动单独编译
 set(DRIVER_DIRS simple_driver block_driver net_block_driver char_driver)

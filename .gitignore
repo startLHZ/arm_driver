@@ -1,6 +1,10 @@
 # 编译目录
 build/
 
+# 内核源码（不提交到仓库）
+dependencies/kernel_src/
+dependencies/kernel.backup.*/
+
 # 内核模块编译产物
 *.o
 *.ko

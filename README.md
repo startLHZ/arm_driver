@@ -1,239 +1,139 @@
-# Linux ARM Driver Framework
+# ARM 驱动开发项目
 
-ARM64驱动开发框架 - 完全独立，一键编译
+这是一个用于 ARM64 平台的 Linux 内核驱动开发项目，包含多种驱动示例和测试程序。
 
-## ✓ 项目特点
+## 快速开始
 
-- **完全独立**: 所有依赖都在项目内，不依赖外部目录
-- **架构**: ARM64 (aarch64)
-- **工具链**: GNU 12.2.1（本地）
-- **内核**: 本地内核头文件
-- **状态**: ✓ 可随意移动和分享
+### 0. 安装系统依赖（首次使用）
 
-## 🚀 快速开始
+在运行脚本前，需要确保系统已安装必要的编译工具：
 
-### 编译驱动
+**Ubuntu/Debian:**
+```bash
+sudo apt update
+sudo apt install -y flex bison libssl-dev libelf-dev bc git make gcc
+```
+
+**CentOS/RHEL:**
+```bash
+sudo yum install -y flex bison openssl-devel elfutils-libelf-devel bc git make gcc
+```
+
+**Fedora:**
+```bash
+sudo dnf install -y flex bison openssl-devel elfutils-libelf-devel bc git make gcc
+```
+
+**Arch Linux:**
+```bash
+sudo pacman -S flex bison openssl libelf bc git make gcc
+```
+
+> **提示**：`setup_kernel.sh` 脚本会自动检查这些依赖，如果缺失会给出安装提示。
+
+### 1. 配置内核源码
+
+首次使用前，需要下载并配置内核源码：
+
+```bash
+./setup_kernel.sh
+```
+
+该脚本会自动：
+- **检查系统依赖**，如有缺失会提示安装命令
+- 从 GitHub 克隆 Linux 内核源码（版本 6.1.134）
+- 配置交叉编译环境
+- 准备模块编译所需的构建工具
+- 创建符号链接到 `dependencies/kernel` 目录
+
+> **注意**：内核源码会下载到 `dependencies/kernel_src/` 目录，已在 `.gitignore` 中排除，不会被提交到仓库。
+
+### 2. 编译驱动和测试程序
+
+配置完内核源码后，运行：
 
 ```bash
 ./build.sh
 ```
 
-就这么简单！
+编译产物会输出到 `build/output/` 目录：
+- `*.ko` - 内核驱动模块
+- 测试程序（可执行文件）
 
-### 2️⃣ 获取生成的文件
-
-编译完成后，所有生成的文件都在 `output/` 目录：
-
-```bash
-ls output/
-# simple_driver.ko  - ARM64驱动模块
-# test_app          - ARM64测试程序
-```
-
-### 3️⃣ 部署到ARM设备
-
-```bash
-# 传输驱动
-scp output/*.ko user@device:/tmp/
-
-# 在设备上加载
-sudo insmod simple_driver.ko
-
-# 查看日志
-dmesg | tail
-
-# 卸载驱动
-sudo rmmod simple_driver
-```
-
-## 📁 目录结构
+## 项目结构
 
 ```
-linux_arm_driver/
-├── build.sh                     # 一键编译脚本
-├── README.md                    # 本文档
-├── BLOCK_DEVICE_USAGE.md       # 块设备驱动详细指南
-│
-├── src/                         # 驱动源码目录
-│   ├── simple_driver/          # 简单驱动示例
-│   │   ├── simple_driver.c     # 驱动源码
-│   │   ├── Makefile           # 驱动编译配置
-│   │   ├── CMakeLists.txt     # CMake配置
-│   │   └── README.md          # 驱动说明文档
-│   │
-│   └── block_driver/           # 块设备驱动
-│       ├── block_driver.c     # 驱动源码
-│       ├── Makefile          # 驱动编译配置
-│       ├── CMakeLists.txt    # CMake配置
-│       └── README.md         # 驱动说明文档
-│
-├── examples/                    # 测试程序目录
-│   ├── simple_driver/          # simple_driver测试程序
-│   │   ├── test_app.c         # 测试程序源码
-│   │   └── CMakeLists.txt     # CMake配置
-│   │
-│   └── block_driver/           # block_driver测试程序
-│       ├── test_block.c       # 测试程序源码
-│       ├── test_block_device.sh  # 自动化测试脚本
-│       └── CMakeLists.txt     # CMake配置
-│
-├── include/                     # 公共头文件
-│   ├── arm_driver.h            # 驱动公共头文件
-│   └── block_driver.h          # 块设备头文件
-│
-├── dependencies/                # 本地依赖
-│   ├── toolchain/              # ARM64交叉编译工具链
-│   └── kernel/                 # 内核头文件
-│
-├── build/                       # 编译中间文件
-│   ├── src/
-│   │   ├── simple_driver/     # simple_driver构建输出
-│   │   │   └── simple_driver.ko
-│   │   └── block_driver/      # block_driver构建输出
-│   │       └── block_driver.ko
-│   └── examples/
-│       ├── simple_driver/     # test_app构建输出
-│       │   └── test_app
-│       └── block_driver/      # test_block构建输出
-│           ├── test_block
-│           └── test_block_device.sh
-│
-└── output/                      # 🎯 最终生成的文件
-    ├── simple_driver.ko        # 简单驱动模块
-    ├── block_driver.ko         # 块设备驱动模块
-    ├── char_driver.ko          # 字符设备驱动模块
-    ├── test_app                # simple_driver测试程序
-    ├── test_block              # block_driver测试程序
-    ├── test_chardev            # char_driver测试程序
-    └── test_char_device.sh     # char_driver自动化脚本
+arm_driver/
+├── setup_kernel.sh          # 内核源码配置脚本（首次使用必须运行）
+├── build.sh                 # 驱动编译脚本
+├── dependencies/
+│   ├── kernel_src/          # 内核源码（由 setup_kernel.sh 创建，不提交到仓库）
+│   ├── kernel/              # 指向 kernel_src 的符号链接
+│   └── toolchain/           # ARM64 交叉编译工具链
+├── src/                     # 驱动源码
+│   ├── simple_driver/       # 简单字符设备驱动
+│   ├── char_driver/         # 字符设备驱动
+│   ├── block_driver/        # 块设备驱动
+│   ├── net_block_driver/    # 网络块设备驱动
+│   └── i2c_driver/          # I2C 驱动
+├── examples/                # 测试程序
+└── include/                 # 公共头文件
 ```
 
-**💡 提示**: 每个驱动都有独立的目录，便于管理和扩展！
-
-## 🎯 驱动列表
+## 驱动模块说明
 
 ### 1. Simple Driver
-- **位置**: `src/simple_driver/`
-- **说明**: 基础驱动示例，演示内核模块基本结构
-- **文档**: [src/simple_driver/README.md](src/simple_driver/README.md)
+基础的字符设备驱动示例，演示基本的驱动注册和设备文件操作。
 
-### 2. Block Device Driver
-- **位置**: `src/block_driver/`
-- **说明**: 完整的块设备驱动，支持ext4文件系统
-- **特性**: 
-  - 基于 blk-mq 框架
-  - 支持格式化和挂载
-  - 512MB虚拟存储
-  - 可自定义后端存储
-- **文档**: 
-  - [src/block_driver/README.md](src/block_driver/README.md)
-  - [BLOCK_DEVICE_USAGE.md](BLOCK_DEVICE_USAGE.md) - 详细使用指南
+### 2. Character Driver
+完整的字符设备驱动，支持读写操作。
 
-### 3. Character Device Driver
-- **位置**: `src/char_driver/`
-- **说明**: 虚拟字符设备驱动，使用内存作为存储后端
-- **特性**: 
-  - 支持 read/write/llseek/ioctl 操作
-  - 自动创建设备节点 `/dev/mychardev`
-  - 多进程并发安全（互斥锁保护）
-  - 4KB 内存缓冲区
-  - 完整的测试程序和自动化脚本
-- **文档**: 
-  - [src/char_driver/README.md](src/char_driver/README.md)
-  - [CHAR_DEVICE_USAGE.md](CHAR_DEVICE_USAGE.md) - 快速使用指南
+### 3. Block Driver
+块设备驱动示例，模拟一个内存块设备。
 
-## ➕ 添加新驱动
+### 4. I2C Driver
+I2C 总线驱动示例，演示如何与 I2C 设备通信。
 
-### 方法 1: 按照现有结构添加（推荐）
+### 5. Network Block Driver
+网络块设备驱动，可通过网络访问块设备。
 
-1. 创建驱动目录和文件：
+## 交叉编译说明
+
+本项目使用 ARM64 交叉编译工具链：
+- 工具链：`aarch64-none-linux-gnu-gcc 12.2.1`
+- 目标架构：`arm64`
+- 内核版本：`Linux 6.1.134`
+
+## 常见问题
+
+### Q: 运行 setup_kernel.sh 提示缺少工具怎么办？
+**A:** 脚本会自动检测缺失的工具并显示安装命令。按照提示安装即可：
 ```bash
-mkdir -p src/my_new_driver
-mkdir -p examples/my_new_driver
+# Ubuntu/Debian
+sudo apt install -y flex bison libssl-dev libelf-dev bc git make gcc
 ```
 
-2. 创建驱动源码 `src/my_new_driver/my_driver.c`
+### Q: 首次编译提示 "内核源码未配置或不完整"
+**A:** 请先运行 `./setup_kernel.sh` 配置内核源码。
 
-3. 创建 `src/my_new_driver/Makefile`:
-```makefile
-ARCH ?= arm64
-CROSS_COMPILE ?= ...
-
-obj-m += my_driver.o
-ccflags-y := -I$(src)/../../include
-
-all:
-	$(MAKE) -C $(KERNEL_DIR) M=$(PWD) modules
-clean:
-	$(MAKE) -C $(KERNEL_DIR) M=$(PWD) clean
-```
-
-4. 创建 `src/my_new_driver/CMakeLists.txt`:
-```cmake
-configure_file(Makefile ${CMAKE_CURRENT_BINARY_DIR}/Makefile COPYONLY)
-configure_file(my_driver.c ${CMAKE_CURRENT_BINARY_DIR}/my_driver.c COPYONLY)
-```
-
-5. 在 `src/CMakeLists.txt` 添加：
-```cmake
-add_subdirectory(my_new_driver)
-```
-
-6. 创建测试程序和对应的 CMakeLists.txt（参考 examples/simple_driver/）
-
-7. 运行 `./build.sh`
-
-8. 在 `build/src/my_new_driver/` 找到 `my_driver.ko`
-
-### 方法 2: 快速添加（简单驱动）
-
-如果只是简单的驱动，可以：
-1. 在 `src/` 任一驱动目录创建 `.c` 文件
-2. 修改该目录的 Makefile 添加新的 `obj-m`
-3. 运行 `./build.sh`
-
-## � 修改配置
-
-如需修改架构或工具链配置，编辑 `build.sh` 的配置区域（第11-17行）：
-
+### Q: setup_kernel.sh 下载很慢怎么办？
+**A:** 可以编辑 `setup_kernel.sh`，将 `KERNEL_REPO` 修改为国内镜像：
 ```bash
-# ARM架构配置
-ARCH=arm64    # 可改为 arm, x86 等
-
-# 工具链和内核路径（相对于项目根目录）
-TOOLCHAIN_PATH="$PROJECT_ROOT/dependencies/toolchain/bin"
-KERNEL_DIR="$PROJECT_ROOT/dependencies/kernel"
+KERNEL_REPO="https://mirrors.tuna.tsinghua.edu.cn/git/linux.git"
 ```
 
-**项目已优化为独立模式，可以随意移动和分享！🚀**## 目录结构
+### Q: 如何切换到其他内核版本？
+**A:** 编辑 `setup_kernel.sh` 中的 `KERNEL_VERSION` 变量，然后重新运行该脚本。
 
-- `src/` - 驱动源码
-- `include/` - 头文件  
-- `examples/` - 测试程序
-- `build.sh` - **一键编译脚本（自动配置）**
-- `快速开始.md` - 详细使用说明
+### Q: 内核源码占用空间太大
+**A:** 脚本默认使用浅克隆（`--depth 1`），只下载指定版本，不包含完整历史记录，已经是最小化的。如果仍然觉得太大，可以在编译完成后删除 `dependencies/kernel_src/.git/` 目录。
 
-## 编译方式
+## 开发环境要求
 
-```bash
-# 方式1: 自动查找内核（推荐，已在build.sh中配置路径）
-./build.sh
+- 操作系统：Linux（已在 Ubuntu/Debian 上测试）
+- 必需工具：`git`, `make`, `cmake`, `gcc`
+- 磁盘空间：约 2-3GB（用于内核源码）
 
-# 方式2: 临时指定内核路径
-KERNEL_DIR=~/linux ./build.sh
-```
+## 许可证
 
-## Load/Unload Modules
-
-```bash
-sudo insmod src/simple_driver.ko
-sudo insmod src/char_driver.ko
-sudo rmmod simple_driver
-sudo rmmod char_driver
-```
-
-## Test
-
-```bash
-./examples/test_app
-```
+请参考各驱动源码文件中的许可证声明。
