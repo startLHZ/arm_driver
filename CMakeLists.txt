@@ -27,7 +27,7 @@ message(STATUS "内核路径:     ${KERNEL_DIR}")
 message(STATUS "=====================================")
 
 # 可选：编译用户态测试程序（需要完整的工具链）
-option(BUILD_EXAMPLES "Build example test programs" OFF)
+option(BUILD_EXAMPLES "Build example test programs" ON)
 
 add_subdirectory(src)
 
@@ -39,7 +39,7 @@ else()
 endif()
 
 # 内核模块编译 - 为每个驱动单独编译
-set(DRIVER_DIRS simple_driver block_driver net_block_driver char_driver)
+set(DRIVER_DIRS simple_driver block_driver net_block_driver char_driver i2c_driver)
 
 add_custom_target(modules ALL
     COMMENT "Building all kernel modules"

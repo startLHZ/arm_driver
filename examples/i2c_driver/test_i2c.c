@@ -7,13 +7,13 @@
 #include <linux/i2c.h>
 #include <string.h>
 
-#define I2C_BUS "/dev/i2c-0"
-#define I2C_ADDR 0x50
+#define I2C_BUS "/dev/i2c-2"
+#define I2C_ADDR 0x29
 
 int main(int argc, char *argv[])
 {
     int fd;
-    unsigned char reg = 0x00;
+    unsigned char reg[2] = {0x00, 0x0d};  // 16位寄存器地址：高字节0x00，低字节0x0d
     unsigned char data = 0x00;
     
     // 打开I2C设备
@@ -30,25 +30,35 @@ int main(int argc, char *argv[])
         return -1;
     }
     
-    // 写入数据示例
-    unsigned char write_buf[2] = {0x00, 0xAA};  // 寄存器地址0x00，数据0xAA
-    if (write(fd, write_buf, 2) != 2) {
-        perror("写入I2C数据失败");
-    } else {
-        printf("成功写入: 寄存器=0x%02X, 数据=0x%02X\n", write_buf[0], write_buf[1]);
-    }
-    
-    usleep(10000);  // 延时10ms
-    
-    // 读取数据示例
+    // 使用I2C消息读取寄存器数据
     unsigned char read_buf[1];
-    reg = 0x00;
-    if (write(fd, &reg, 1) != 1) {
-        perror("写入寄存器地址失败");
-    } else if (read(fd, read_buf, 1) != 1) {
-        perror("读取I2C数据失败");
+    
+    struct i2c_msg msgs[2] = {
+        {
+            .addr = I2C_ADDR,
+            .flags = 0,           // 写操作
+            .len = 2,             // 写入2字节的寄存器地址
+            .buf = reg,
+        },
+        {
+            .addr = I2C_ADDR,
+            .flags = I2C_M_RD,    // 读操作
+            .len = 1,
+            .buf = read_buf,
+        }
+    };
+    
+    struct i2c_rdwr_ioctl_data msgset = {
+        .msgs = msgs,
+        .nmsgs = 2,
+    };
+    
+    if (ioctl(fd, I2C_RDWR, &msgset) < 0) {
+        perror("I2C读写操作失败 error: ");
+        close(fd);
+        return -1;
     } else {
-        printf("成功读取: 寄存器=0x%02X, 数据=0x%02X\n", reg, read_buf[0]);
+        printf("成功读取: 寄存器=0x%02X%02X, 数据=0x%02X\n", reg[0], reg[1], read_buf[0]);
     }
     
     close(fd);

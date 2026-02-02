@@ -12,10 +12,9 @@ static int i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
     return 0;
 }
 
-static int i2c_remove(struct i2c_client *client)
+static void i2c_remove(struct i2c_client *client)
 {
     printk(KERN_INFO "%s: I2C device removed\n", DRIVER_NAME);
-    return 0;
 }
 
 static const struct i2c_device_id i2c_id[] = {
