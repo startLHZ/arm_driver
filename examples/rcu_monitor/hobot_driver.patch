@@ -1,0 +1,24 @@
+diff --git a/build/Kconfig b/build/Kconfig
+index 977145ad..20f55d98 100755
+--- a/build/Kconfig
++++ b/build/Kconfig
+@@ -61,6 +61,7 @@ source "../hobot-drivers/sdei_backtrace/Kconfig"
+ source "../hobot-drivers/ddr_monitor/Kconfig"
+ source "../hobot-drivers/watchdog/Kconfig"
+ source "../hobot-drivers/boardinfo/Kconfig"
++source "../hobot-drivers/rcu_monitor/Kconfig"
+ source "../hobot-drivers/security/Kconfig"
+ source "../hobot-drivers/osmonitor/Kconfig"
+ source "../hobot-drivers/minidump/Kconfig"
+diff --git a/build/Makefile b/build/Makefile
+index 1d765108..45098f11 100755
+--- a/build/Makefile
++++ b/build/Makefile
+@@ -48,6 +48,7 @@ obj-y				+= bl31_log/
+ obj-y				+= ddr_version/
+ obj-y				+= sdei_backtrace/
+ obj-y				+= boardinfo/
++obj-y				+= rcu_monitor/
+ obj-y				+= watchdog/
+ obj-y				+= ddr_monitor/
+ obj-y				+= security/

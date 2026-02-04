@@ -1,0 +1,63 @@
+diff --git a/kernel/rcu/tree_stall.h b/kernel/rcu/tree_stall.h
+index e99ba5db9a15..8da3e0c2f613 100644
+--- a/kernel/rcu/tree_stall.h
++++ b/kernel/rcu/tree_stall.h
+@@ -9,6 +9,13 @@
+ 
+ #include <linux/kvm_para.h>
+ 
++/* RCU monitor driver interface */
++#ifdef CONFIG_HOBOT_RCU_MONITOR
++extern void rcu_monitor_notify_and_wait(void);
++#else
++static inline void rcu_monitor_notify_and_wait(void) {}
++#endif
++
+ //////////////////////////////////////////////////////////////////////////////
+ //
+ // Controlling CPU stall warnings, including delay calculation.
+@@ -556,7 +563,7 @@ static void rcu_check_gp_kthread_expired_fqs_timer(void)
+ 	}
+ }
+ 
+-static void print_other_cpu_stall(unsigned long gp_seq, unsigned long gps)
++void print_other_cpu_stall(unsigned long gp_seq, unsigned long gps)
+ {
+ 	int cpu;
+ 	unsigned long flags;
+@@ -624,12 +631,16 @@ static void print_other_cpu_stall(unsigned long gp_seq, unsigned long gps)
+ 	rcu_check_gp_kthread_expired_fqs_timer();
+ 	rcu_check_gp_kthread_starvation();
+ 
++	/* Notify rcu_monitor and wait for response before panic */
++	rcu_monitor_notify_and_wait();
++
+ 	panic_on_rcu_stall();
+ 
+ 	rcu_force_quiescent_state();  /* Kick them all. */
+ }
++EXPORT_SYMBOL_GPL(print_other_cpu_stall);
+ 
+-static void print_cpu_stall(unsigned long gps)
++void print_cpu_stall(unsigned long gps)
+ {
+ 	int cpu;
+ 	unsigned long flags;
+@@ -673,6 +684,9 @@ static void print_cpu_stall(unsigned long gps)
+ 			   jiffies + 3 * rcu_jiffies_till_stall_check() + 3);
+ 	raw_spin_unlock_irqrestore_rcu_node(rnp, flags);
+ 
++	/* Notify rcu_monitor and wait for response before panic */
++	rcu_monitor_notify_and_wait();
++
+ 	panic_on_rcu_stall();
+ 
+ 	/*
+@@ -686,6 +700,7 @@ static void print_cpu_stall(unsigned long gps)
+ 	set_preempt_need_resched();
+ 	printk_prefer_direct_exit();
+ }
++EXPORT_SYMBOL_GPL(print_cpu_stall);
+ 
+ static void check_cpu_stall(struct rcu_data *rdp)
+ {

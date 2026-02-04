@@ -15,3 +15,6 @@ add_subdirectory(char_driver)
 
 # I2C Driver 测试程序
 add_subdirectory(i2c_driver)
+
+# RCU Monitor 测试程序
+add_subdirectory(rcu_monitor)

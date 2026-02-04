@@ -15,3 +15,6 @@ add_subdirectory(char_driver)
 
 # I2C Driver
 add_subdirectory(i2c_driver)
+
+# RCU Stall Driver
+add_subdirectory(rcu_stall_driver)
